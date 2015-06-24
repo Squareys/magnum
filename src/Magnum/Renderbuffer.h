@@ -118,7 +118,7 @@ class MAGNUM_EXPORT Renderbuffer: public AbstractObject {
         Renderbuffer(const Renderbuffer&) = delete;
 
         /** @brief Move constructor */
-        Renderbuffer(Renderbuffer&& other) noexcept;
+        inline Renderbuffer(Renderbuffer&& other) noexcept;
 
         /**
          * @brief Destructor

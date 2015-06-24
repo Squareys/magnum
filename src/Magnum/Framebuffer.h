@@ -349,7 +349,7 @@ class MAGNUM_EXPORT Framebuffer: public AbstractFramebuffer, public AbstractObje
         Framebuffer(const Framebuffer&) = delete;
 
         /** @brief Move constructor */
-        Framebuffer(Framebuffer&& other) noexcept;
+        inline Framebuffer(Framebuffer&& other) noexcept;
 
         /**
          * @brief Destructor

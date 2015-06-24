@@ -867,7 +867,7 @@ class MAGNUM_EXPORT Buffer: public AbstractObject {
         Buffer(const Buffer&) = delete;
 
         /** @brief Move constructor */
-        Buffer(Buffer&& other) noexcept;
+        inline Buffer(Buffer&& other) noexcept;
 
         /**
          * @brief Destructor
