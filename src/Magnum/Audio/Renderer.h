@@ -29,6 +29,8 @@
  * @brief Class @ref Magnum::Audio::Renderer
  */
 
+#include <array>
+
 #include <al.h>
 
 #include "Magnum/Magnum.h"
@@ -86,9 +88,11 @@ class Renderer {
 
         /**
          * @brief Listener orientation
+         *
+         * The returned array consists of forward (index 0) and up (index 1) vectors.
          * @see @ref setListenerOrientation(), @fn_al{GetListenerfv} with @def_al{ORIENTATION}
          */
-        static Vector3 listenerOrientation();
+        static std::array<Vector3, 2> listenerOrientation();
 
         /**
          * @brief Set listener orientation
@@ -242,10 +246,10 @@ inline Vector3 Renderer::listenerPosition() {
     return position;
 }
 
-inline Vector3 Renderer::listenerOrientation() {
-    Vector3 orientation;
-    alGetListenerfv(AL_ORIENTATION, orientation.data());
-    return orientation;
+inline std::array<Vector3, 2> Renderer::listenerOrientation() {
+    std::array<Vector3, 2> data = {Vector3{}, Vector3{}};
+    alGetListenerfv(AL_ORIENTATION, data[0].data());
+    return data;
 }
 
 inline void Renderer::setListenerOrientation(const Vector3& forward, const Vector3& up) {
