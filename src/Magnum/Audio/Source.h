@@ -83,6 +83,16 @@ class MAGNUM_AUDIO_EXPORT Source {
         /** @{ @name Source positioning */
 
         /**
+         * @brief Position
+         * @see @ref setPosition(), @fn_al{GetSourcefv} with @def_al{POSITION}
+         */
+        Vector3 position() const {
+            Vector3 v;
+            alGetSourcefv(_id, AL_POSITION, v.data());
+            return v;
+        }
+
+        /**
          * @brief Set position
          * @return Reference to self (for method chaining)
          *
