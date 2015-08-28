@@ -62,6 +62,12 @@ class Renderer {
         /** @{ @name Listener positioning */
 
         /**
+         * @brief Listener position
+         * @see @ref setListenerPosition(), @fn_al{GetListenerfv} with @def_al{POSITION}
+         */
+        static Vector3 listenerPosition();
+
+        /**
          * @brief Set listener position
          *
          * Default is `{0.0f, 0.0f, 0.0f}`.
@@ -79,6 +85,12 @@ class Renderer {
         }
 
         /**
+         * @brief Listener orientation
+         * @see @ref setListenerOrientation(), @fn_al{GetListenerfv} with @def_al{ORIENTATION}
+         */
+        static Vector3 listenerOrientation();
+
+        /**
          * @brief Set listener orientation
          *
          * The values must be linearly independent and don't need to be
@@ -91,6 +103,12 @@ class Renderer {
          * @see @fn_al{Listeneriv} with @def_al{ORIENTATION}
          */
         static void setListenerOrientation(const Vector3i& forward, const Vector3i& up);
+
+        /**
+         * @brief Listener position
+         * @see @ref setListenerVelocity(), @fn_al{GetListenerfv} with @def_al{VELOCITY}
+         */
+        static Vector3 listenerVelocity();
 
         /**
          * @brief Set listener velocity
@@ -142,6 +160,12 @@ class Renderer {
         };
 
         /**
+         * @brief Listener gain
+         * @see @ref setListenerGain(), @fn_al{GetListenerf} with @def_al{GAIN}
+         */
+        static Float listenerGain();
+
+        /**
          * @brief Set listener gain
          *
          * Default is `1.0f`, which means that the sound is unattenuated.
@@ -150,6 +174,14 @@ class Renderer {
          */
         static void setListenerGain(Float gain) {
             alListenerf(AL_GAIN, gain);
+        }
+
+        /**
+         * @brief Doppler factor
+         * @see @ref setDopplerFactor(), @fn_al{GetFloat} with @def_al{DOPPLER_FACTOR}
+         */
+        static Float dopplerFactor() {
+            return alGetFloat(AL_DOPPLER_FACTOR);
         }
 
         /**
@@ -163,6 +195,14 @@ class Renderer {
         }
 
         /**
+         * @brief Speed of sound
+         * @see @ref setSpeedOfSound(), @fn_al{GetFloat} with @def_al{SPEED_OF_SOUND}
+         */
+        static Float speedOfSound() {
+            return alGetFloat(AL_SPEED_OF_SOUND);
+        }
+
+        /**
          * @brief Set speed of sound
          *
          * Default is `343.3f` (meters per second).
@@ -170,6 +210,14 @@ class Renderer {
          */
         static void setSpeedOfSound(Float speed) {
             alSpeedOfSound(speed);
+        }
+
+        /**
+         * @brief Distance model
+         * @see @ref setDistanceModel(), @fn_al{GetInteger} with @def_al{DISTANCE_MODEL}
+         */
+        static DistanceModel distanceModel() {
+            return DistanceModel(alGetInteger(AL_DISTANCE_MODEL));
         }
 
         /**
@@ -188,6 +236,18 @@ class Renderer {
 /** @debugoperatorclassenum{Magnum::Audio::Renderer,Magnum::Audio::Renderer::Error} */
 Debug MAGNUM_AUDIO_EXPORT operator<<(Debug debug, Renderer::Error value);
 
+inline Vector3 Renderer::listenerPosition() {
+    Vector3 position;
+    alGetListenerfv(AL_POSITION, position.data());
+    return position;
+}
+
+inline Vector3 Renderer::listenerOrientation() {
+    Vector3 orientation;
+    alGetListenerfv(AL_ORIENTATION, orientation.data());
+    return orientation;
+}
+
 inline void Renderer::setListenerOrientation(const Vector3& forward, const Vector3& up) {
     const Vector3 data[] = {forward, up};
     alListenerfv(AL_ORIENTATION, data[0].data());
@@ -196,6 +256,18 @@ inline void Renderer::setListenerOrientation(const Vector3& forward, const Vecto
 inline void Renderer::setListenerOrientation(const Vector3i& forward, const Vector3i& up) {
     const Vector3i data[] = {forward, up};
     alListeneriv(AL_ORIENTATION, data[0].data());
+}
+
+inline Vector3 Renderer::listenerVelocity() {
+    Vector3 velocity;
+    alGetListenerfv(AL_VELOCITY, velocity.data());
+    return velocity;
+}
+
+inline Float Renderer::listenerGain() {
+    Float gain;
+    alGetListenerf(AL_GAIN, &gain);
+    return gain;
 }
 
 }}
