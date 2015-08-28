@@ -240,9 +240,6 @@ class Renderer {
 /** @debugoperatorclassenum{Magnum::Audio::Renderer,Magnum::Audio::Renderer::Error} */
 Debug MAGNUM_AUDIO_EXPORT operator<<(Debug debug, Renderer::Error value);
 
-/** @debugoperatorclassenum{Magnum::Audio::Renderer,Magnum::Audio::Renderer::DistanceModel} */
-Debug MAGNUM_AUDIO_EXPORT operator<<(Debug debug, Renderer::DistanceModel value);
-
 inline Vector3 Renderer::listenerPosition() {
     Vector3 position;
     alGetListenerfv(AL_POSITION, position.data());
