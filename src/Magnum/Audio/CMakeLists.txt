@@ -46,6 +46,12 @@ set(MagnumAudio_HEADERS
 
     visibility.h)
 
+if(WITH_SCENEGRAPH)
+    list(APPEND MagnumAudio_HEADERS
+        Listener.h
+        Playable.h)
+endif()
+
 # Audio library
 add_library(MagnumAudio ${SHARED_OR_STATIC}
     ${MagnumAudio_SRCS}
@@ -56,6 +62,10 @@ if(BUILD_STATIC_PIC)
 endif()
 
 target_link_libraries(MagnumAudio Magnum ${CORRADE_PLUGINMANAGER_LIBRARIES} ${OPENAL_LIBRARY})
+
+if(WITH_SCENEGRAPH)
+    target_link_libraries(MagnumAudio ${MAGNUM_SCENEGRAPH_LIBRARIES})
+endif()
 
 install(TARGETS MagnumAudio
     RUNTIME DESTINATION ${MAGNUM_BINARY_INSTALL_DIR}
