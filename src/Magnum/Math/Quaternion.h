@@ -112,6 +112,11 @@ Expects that both quaternions are normalized. @f[
 template<class T> inline Quaternion<T> slerp(const Quaternion<T>& normalizedA, const Quaternion<T>& normalizedB, T t) {
     CORRADE_ASSERT(normalizedA.isNormalized() && normalizedB.isNormalized(),
         "Math::slerp(): quaternions must be normalized", {});
+    if(normalizedA == normalizedB) {
+        /* The only case where the angle a between the quaternions is 0.0 and
+           we therefore cannot divide by sin(a) */
+        return Quaternion<T>{normalizedA};
+    }
     const T a = Implementation::angle(normalizedA, normalizedB);
     return (std::sin((T(1) - t)*a)*normalizedA + std::sin(t*a)*normalizedB)/std::sin(a);
 }
