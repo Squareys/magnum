@@ -35,6 +35,8 @@ if(MSVC)
     string(REPLACE "/W3" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 endif()
 
+add_compile_options("-fno-rtti")
+
 # Emscripten needs special flag to use WebGL 2
 if(CORRADE_TARGET_EMSCRIPTEN AND NOT TARGET_GLES2)
     # TODO: give me INTERFACE_LINK_OPTIONS or something, please
