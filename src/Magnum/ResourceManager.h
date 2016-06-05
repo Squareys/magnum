@@ -171,6 +171,9 @@ template<class ...Types> struct ResourceManagerImplementation: ResourceManagerIn
    in code where the manager is used across library boundaries), definition
    of internalInstance() is in ResourceManager.hpp, see it for usage details */
 template<class... Types> struct ResourceManagerLocalInstanceImplementation {
+    #ifndef _MSC_VER
+    CORRADE_VISIBILITY_EXPORT
+    #endif
     static ResourceManager<Types...>*& internalInstance();
 };
 struct ResourceManagerLocalInstance;
