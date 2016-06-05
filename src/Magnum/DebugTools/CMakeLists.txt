@@ -54,7 +54,8 @@ endif()
 if(WITH_SCENEGRAPH)
     list(APPEND MagnumDebugTools_SRCS
         ForceRenderer.cpp
-        ObjectRenderer.cpp)
+        ObjectRenderer.cpp
+        ../SceneGraph/instantiation.cpp)
 
     list(APPEND MagnumDebugTools_HEADERS
         ForceRenderer.h
