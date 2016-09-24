@@ -47,6 +47,7 @@ class WavImporterTest: public TestSuite::Tester {
         void mono8();
         void mono8ALaw();
         void mono8MuLaw();
+        void mono8junk();
         void mono16();
 
         void stereo8();
@@ -69,6 +70,7 @@ WavImporterTest::WavImporterTest() {
               &WavImporterTest::mono8,
               &WavImporterTest::mono8ALaw,
               &WavImporterTest::mono8MuLaw,
+              &WavImporterTest::mono8junk,
               &WavImporterTest::mono16,
               &WavImporterTest::stereo8,
               &WavImporterTest::stereo8ALaw,
@@ -138,6 +140,14 @@ void WavImporterTest::mono8MuLaw() {
 
     CORRADE_COMPARE(importer.format(), Buffer::Format::MonoMuLaw);
     CORRADE_COMPARE(importer.frequency(), 8000);
+}
+
+void WavImporterTest::mono8junk() {
+    WavImporter importer;
+    CORRADE_VERIFY(importer.openFile(Utility::Directory::join(WAVAUDIOIMPORTER_TEST_DIR, "mono8junk.wav")));
+
+    CORRADE_COMPARE(importer.format(), Buffer::Format::Mono8);
+    CORRADE_COMPARE(importer.frequency(), 22050);
 }
 
 void WavImporterTest::mono16() {
