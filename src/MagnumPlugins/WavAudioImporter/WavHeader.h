@@ -40,8 +40,8 @@
 namespace Magnum { namespace Audio {
 
 #pragma pack(1)
-/** @brief RIFF chunk */
-struct RiffChunk {
+/** @brief RIFF chunk header */
+struct RiffChunkHeader {
     char chunkId[4];            /**< @brief chunk name (4 characters) */
     UnsignedInt chunkSize;      /**< @brief size of chunk (does not include chunk header) */
 };
@@ -50,7 +50,7 @@ struct RiffChunk {
 #pragma pack(1)
 /** @brief WAV file header */
 struct WavHeaderChunk {
-    RiffChunk chunk;
+    RiffChunkHeader chunk;
     char format[4];                 /**< @brief `WAVE` characters */
 };
 #pragma pack()
@@ -58,32 +58,28 @@ struct WavHeaderChunk {
 #pragma pack(1)
 /** @brief WAV 'fmt' header */
 struct WavFormatChunk {
-    RiffChunk chunk;
-    UnsignedShort audioFormat;      /**< @brief 1 = PCM */
+    RiffChunkHeader chunk;
+    UnsignedShort audioFormat;      /**< @brief compression type, 1 = PCM */
     UnsignedShort numChannels;      /**< @brief 1 = Mono, 2 = Stereo */
     UnsignedInt sampleRate;         /**< @brief Sample rate in Hz */
     UnsignedInt byteRate;           /**< @brief Bytes per second */
     UnsignedShort blockAlign;       /**< @brief Bytes per sample (all channels) */
     UnsignedShort bitsPerSample;    /**< @brief Bits per sample (one channel) */
+    //UnsignedShort extra;            /**< @brief Number of successive bytes with additional data */
 };
 #pragma pack()
 
 #pragma pack(1)
 /** @brief WAV 'fact' header */
 struct WavFactChunk {
-    RiffChunk chunk;
+    RiffChunkHeader chunk;
     UnsignedInt dwSampleLength;     /**< @brief sample length */
 };
 #pragma pack()
 
-#pragma pack(1)
-/** @brief WAV 'data' header */
-struct WavDataChunk {
-    RiffChunk chunk;
-};
-#pragma pack()
+static_assert(sizeof(WavFormatChunk) == 24, "WavFormatChunk size is not 26 bytes");
+static_assert(sizeof(RiffChunkHeader) == 8, "RiffChunkHeader size is not 8 bytes");
 
-static_assert(sizeof(WavHeaderChunk) + sizeof(WavFormatChunk) + sizeof(WavDataChunk) == 44, "WavHeader size is not 44 bytes");
 
 }}
 
