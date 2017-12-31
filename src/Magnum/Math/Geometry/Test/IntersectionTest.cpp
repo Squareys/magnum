@@ -27,6 +27,7 @@
 #include <Corrade/TestSuite/Tester.h>
 
 #include "Magnum/Math/Geometry/Intersection.h"
+#include "Magnum/Math/Angle.h"
 
 namespace Magnum { namespace Math { namespace Geometry { namespace Test {
 
@@ -38,6 +39,10 @@ struct IntersectionTest: Corrade::TestSuite::Tester {
 
     void pointFrustum();
     void boxFrustum();
+
+    void pointCone();
+
+    void lineCircle();
 };
 
 typedef Math::Vector2<Float> Vector2;
@@ -52,7 +57,11 @@ IntersectionTest::IntersectionTest() {
               &IntersectionTest::lineLine,
 
               &IntersectionTest::pointFrustum,
-              &IntersectionTest::boxFrustum});
+              &IntersectionTest::boxFrustum,
+
+              &IntersectionTest::pointCone,
+
+              &IntersectionTest::lineCircle});
 }
 
 void IntersectionTest::planeLine() {
@@ -138,6 +147,32 @@ void IntersectionTest::boxFrustum() {
     CORRADE_VERIFY(Intersection::boxFrustum(Range3D{Vector3{-100.0f}, Vector3{100.0f}}, frustum));
     /* Outside of frustum */
     CORRADE_VERIFY(!Intersection::boxFrustum(Range3D{Vector3{-10.0f}, Vector3{-5.0f}}, frustum));
+}
+
+void IntersectionTest::pointCone() {
+    const Vector3 center{0.1f, 0.2f, 0.3f};
+    const Vector3 normal{0.0f, 1.0f, 0.0f};
+    const Deg<Float> angle{72.0f};
+
+    /* Point on edge */
+    CORRADE_VERIFY(Intersection::pointCone(center, center, normal, angle));
+    /* Point inside */
+    CORRADE_VERIFY(Intersection::pointCone(center + Vector3{0.5f, 1.0f, 0.3f}, center, normal, angle));
+    /* Point outside */
+    CORRADE_VERIFY(!Intersection::pointCone({3.0f, -10.0f, 100.0f}, center, normal, angle));
+    CORRADE_VERIFY(!Intersection::pointCone({0.0f, 0.0f, 0.0f}, center, normal, angle));
+}
+
+void IntersectionTest::lineCircle() {
+    const Vector2 center{1.0f, 2.0f};
+    const Float radius = 2.0f;
+
+    /* One intersection */
+    CORRADE_VERIFY(Intersection::twoPointLineCircle(Vector2{3.0f, 2.0f}, Vector2{3.0, 3.0f}, center, radius));
+    /* Two intersections */
+    CORRADE_VERIFY(Intersection::twoPointLineCircle(Vector2{1.0f, 2.0f}, Vector2{3.0, 4.0f}, center, radius));
+    /* No intersection */
+    CORRADE_VERIFY(!Intersection::twoPointLineCircle(Vector2{10.0f, 20.0f}, Vector2{30.0, 40.0f}, center, radius));
 }
 
 }}}}

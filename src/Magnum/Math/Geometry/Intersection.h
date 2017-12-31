@@ -33,6 +33,7 @@
 #include "Magnum/Math/Frustum.h"
 #include "Magnum/Math/Geometry/Distance.h"
 #include "Magnum/Math/Range.h"
+#include "Magnum/Math/Vector2.h"
 #include "Magnum/Math/Vector3.h"
 
 namespace Magnum { namespace Math { namespace Geometry { namespace Intersection {
@@ -186,6 +187,173 @@ template<class T> bool boxFrustum(const Range3D<T>& box, const Frustum<T>& frust
     /** @todo potentially check corners here to avoid false positives */
 
     return true;
+}
+
+/**
+@brief Intersection of a point and a cone
+@param p        The point
+@param origin   Origin of the cone
+@param normal   Normal of the cone
+@param angle    Apex angle of the cone
+
+Returns `true` if the point is inside the cone.
+
+@see pointCone(Vector3, Vector3, Vector3, T)
+@todo: That ref is never going to work...
+*/
+template<class T> bool pointCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, const Deg<T> angle) {
+    const T x = T(1)+Math::pow<T>(Math::tan<T>(angle/T(2)), T(2));
+
+    return pointCone(p, origin, normal, x);
+}
+
+/**
+@brief Faster version of intersection of a point and a cone
+@param p        The point
+@param origin   Origin of the cone
+@param normal   Normal of the cone
+@param tanAngleSqaredPlusOne Precomputed portion of the cone intersection equation
+
+Returns `true` if the point is inside the cone.
+
+Uses the result of precomputing @f$x = \tan^2{\theta} + 1@f$.
+
+@todo: I believe the normal is expected to be a unit vector...?
+*/
+template<class T> bool pointCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, const T tanAngleSquaredPlusOne) {
+    const Vector3<T> c = p - origin;
+    const T lenA = dot(c, normal);
+
+    return c.dot() <= lenA*lenA*tanAngleSquaredPlusOne;
+}
+
+/**
+@brief Line circle intersection
+@param from   First point of the line
+@param to     Second point of the line
+@param center Center of the circle
+@param radius Radius of the circle
+
+Returns `true` if the line intersects the circle.
+*/
+template<class T> bool twoPointLineCircle(const Vector2<T>& from, const Vector2<T>& to, const Vector2<T>& origin, const T radius) {
+    /* Tranform to circle-local coords */
+    const Vector2<T> f = from - origin;
+    const Vector2<T> t = to - origin;
+
+    return twoPointLineOriginCircle(f, t, radius);
+}
+
+template<class T> bool twoPointLineOriginCircle(const Vector2<T>& from, const Vector2<T>& to, const T radius) {
+    const Vector2<T> dir = to - from;
+
+    return lineOriginCircle(from, dir, radius);
+}
+
+template<class T> bool lineOriginCircle(const Vector2<T>& from, const Vector2<T>& dir, const T radius) {
+    return lineOriginCircleRadiusSquared(from, dir, radius*radius);
+}
+
+template<class T> bool lineOriginCircleRadiusSquared(const Vector2<T>& from, const Vector2<T>& dir, const T radiusSq) {
+    const T a = dir.dot();
+    const T b = dot(dir, from);
+    const T c = from.dot() - radiusSq;
+    const T delta = b*b - T(4)*a*c;
+
+    return delta >= T(0);
+}
+
+template<class T> bool lineSphere(const Vector3<T>& origin, const Vector3<T>& dir, const Vector3<T>& center, const T radiusSq) {
+    const Vector3<T> diff = origin - center;
+    const T x = dot(dir, diff);
+    const T = x*x - dir.dot()*(diff.dot()-radiusSq);
+
+    return delta >= T(0);
+}
+
+template<class T> lineCone(const Vector3<T>& from, const Vector3<T>& dir, const Vector3<T>& origin, const Vector3<T>& normal, const Vector3<T>& center, const Vector3<T>& radiusSq) {
+
+    /* Calculate intersection line of the two planes */
+    const Vector3<T> o = ;
+    const Vector3<T> p1Normal =
+    const Vector3<T> d = cross(dir, );
+
+    /* Calculate intersection of the resulting line with sphere */
+    return lineSphere(o, d, center, radiusSq);
+}
+
+/**
+ * Based on https://www.geometrictools.com/Documentation/IntersectionTriangleCone.pdf
+ */
+template<class T> triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, const Vector3<T>& p2, const Vector3<T>& origin, const Vector3<T>& normal, const T cosAngleSq) {
+    bool inFront[4]{false, false, false, false};
+    Vector3<T> points[4]{p0, p1, p2, p0}; //constexpr?
+
+    for (int i = 0; i < 3; ++i) {
+        const Vector3<T> diff = points[i] - origin;
+        const T d = dot(normal, diff);
+        const bool inFront = d < T(0);
+        if(inFront) {
+            if(d*d <= cosAngleSq*d0.dot()) {
+                return true;
+            }
+            inFront[i] = true;
+        } else {
+            /* behind the cone */
+        }
+        ++i;
+    }
+
+    if(!inFront[0] && !inFront[1] && !inFront[2]) {
+        return false;
+    }
+
+    inFront[3] = inFront[1];
+    /* If any edge intersects, the triangle intersects, therefore test all of them */
+    for(int i = 0; i < 3; ++i) {
+        if(!inFront[i] && !inFront[i+1]) {
+            /* does not intesect */
+        } else {
+            /* handle edges fully on the cone side */
+            const Vector3<T> dir = points[i+1] - points[i];
+            const T d = dot(normal, dir);
+
+            const T c2 = d*d - dir.dot()*cosAngleSq;
+            if(c2 < T(0)) {
+                const Vector3<T> o = points[i] - origin;
+                const T dirDotO = dot(dir, o);
+                const T normDotO = dot(normal, o);
+                const T c1 = d*normDotO - cosAngleSq*dirDotO;
+                if(inFront[i] && inFront[i+1]) {
+                    if(T(0) <= c1 && c1 <= c2) {
+                        const T c0 = dirDotO*dirDotO - cosAngleSq*o.dot();
+                        if(c1*c1 >= c0*c2) {
+                            return true;
+                        }
+                    }
+                } else if(inFront[i] && !inFront[i+1]) {
+                    if(T(0) <= c1 && c2*normDotO <= c1*dirDotO) {
+                        const T c0 = normDotO*normDotO - cosAngleSq*o.dot();
+                        if(c1*c1 >= c0*c2) {
+                            return true;
+                        }
+                    }
+                } else if(!inFront[i] && inFront[i+1]) {
+                    /* <--------> only changed condition below from entire block above */
+                    if(c1 <= -c2 && c2*normDotO <= c1*dirDotO) {
+                        const T c0 = normDotO*normDotO - cosAngleSq*o.dot();
+                        if(c1*c1 >= c0*c2) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /* TODO: plane test */
+
+    return false;
 }
 
 }}}}
