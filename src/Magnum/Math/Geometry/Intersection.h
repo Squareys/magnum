@@ -271,33 +271,32 @@ template<class T> bool lineSphere(const Vector3<T>& origin, const Vector3<T>& di
     return delta >= T(0);
 }
 
-template<class T> lineCone(const Vector3<T>& from, const Vector3<T>& dir, const Vector3<T>& origin, const Vector3<T>& normal, const Vector3<T>& center, const Vector3<T>& radiusSq) {
+template<class T> bool lineCone(const Vector3<T>& from, const Vector3<T>& dir, const Vector3<T>& origin, const Vector3<T>& normal, const T cosAngleSq) {
 
     /* Calculate intersection line of the two planes */
-    const Vector3<T> o = ;
-    const Vector3<T> p1Normal =
-    const Vector3<T> d = cross(dir, );
+    const Vector3<T> o = from; // TODO
+    const Vector3<T> p1Normal = normal; // TODO
+    const Vector3<T> d = cross(dir, origin); // TODO
 
     /* Calculate intersection of the resulting line with sphere */
-    return lineSphere(o, d, center, radiusSq);
+    return false;
 }
 
 /**
  * Based on https://www.geometrictools.com/Documentation/IntersectionTriangleCone.pdf
  */
-template<class T> triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, const Vector3<T>& p2, const Vector3<T>& origin, const Vector3<T>& normal, const T cosAngleSq) {
+template<class T> bool triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, const Vector3<T>& p2, const Vector3<T>& origin, const Vector3<T>& normal, const T cosAngleSq) {
     bool inFront[4]{false, false, false, false};
     Vector3<T> points[4]{p0, p1, p2, p0}; //constexpr?
 
     for (int i = 0; i < 3; ++i) {
         const Vector3<T> diff = points[i] - origin;
         const T d = dot(normal, diff);
-        const bool inFront = d < T(0);
-        if(inFront) {
-            if(d*d <= cosAngleSq*d0.dot()) {
+        inFront[i] = d < T(0);
+        if(inFront[i]) {
+            if(d*d <= cosAngleSq*diff.dot()) {
                 return true;
             }
-            inFront[i] = true;
         } else {
             /* behind the cone */
         }
@@ -351,7 +350,29 @@ template<class T> triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, const
         }
     }
 
-    /* TODO: plane test */
+    /* plane test */
+    const Vector3<T> edge0 = points[1] - points[0];
+    const Vector3<T> edge1 = points[2] - points[1];
+    const Vector3<T> edge2 = points[0] - points[2];
+
+    const Vector3<T> triangleNormal = cross(edge0, edge1);
+    const T dotTriangleConeNormal = dot(triangleNormal, normal);
+
+    const Vector3<T> delta0 = points[0] - origin;
+    const T dotTriangleNormalDelta0 = dot(triangleNormal, delta0);
+
+    const Vector3<T> u = dotTriangleNormalDelta0*normal - dotTriangleConeNormal*delta0;
+    const Vector3<T> nCrossU = cross(triangleNormal, u);
+
+    if(dotTriangleConeNormal >= T(0)) {
+        if(dot(nCrossU, edge0) <= T(0) && dot(nCrossU, edge1) <= T(0)) {
+            return dot(nCrossU, edge2) <= dotTriangleConeNormal*triangleNormal.dot();
+        }
+    } else {
+        if(dot(nCrossU, edge0) >= T(0) && dot(nCrossU, edge1) >= T(0)) {
+            return dot(nCrossU, edge2) >= dotTriangleConeNormal*triangleNormal.dot();
+        }
+    }
 
     return false;
 }

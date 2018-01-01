@@ -41,6 +41,8 @@ struct IntersectionTest: Corrade::TestSuite::Tester {
     void boxFrustum();
 
     void pointCone();
+    void lineCone();
+    void triangleCone();
 
     void lineCircle();
 };
@@ -60,6 +62,8 @@ IntersectionTest::IntersectionTest() {
               &IntersectionTest::boxFrustum,
 
               &IntersectionTest::pointCone,
+              &IntersectionTest::lineCone,
+              &IntersectionTest::triangleCone,
 
               &IntersectionTest::lineCircle});
 }
@@ -161,6 +165,29 @@ void IntersectionTest::pointCone() {
     /* Point outside */
     CORRADE_VERIFY(!Intersection::pointCone({3.0f, -10.0f, 100.0f}, center, normal, angle));
     CORRADE_VERIFY(!Intersection::pointCone({0.0f, 0.0f, 0.0f}, center, normal, angle));
+}
+
+void IntersectionTest::lineCone() {
+    const Vector3 center{0.1f, 0.2f, 0.3f};
+    const Vector3 normal{0.0f, 1.0f, 0.0f};
+    const Deg<Float> angle{72.0f};
+
+    const Float cosAngleSq = pow(cos(angle/2.0f), 2.0f);
+
+    CORRADE_EXPECT_FAIL("Not implemented yet.");
+
+    CORRADE_VERIFY(Intersection::lineCone(center, normal, center, normal, cosAngleSq));
+}
+
+void IntersectionTest::triangleCone() {
+    const Vector3 center{0.1f, 0.2f, 0.3f};
+    const Vector3 normal{0.0f, 1.0f, 0.0f};
+    const Deg<Float> angle{72.0f};
+
+    const Float cosAngleSq = pow(cos(angle/2.0f), 2.0f);
+
+    /* Triangle fully inside cone */
+    CORRADE_VERIFY(Intersection::triangleCone(center+normal, center+0.5f*normal, center+normal+Vector3::xAxis(0.02f), center, normal, cosAngleSq));
 }
 
 void IntersectionTest::lineCircle() {
