@@ -181,7 +181,7 @@ void IntersectionTest::lineCone() {
 
 void IntersectionTest::triangleCone() {
     const Vector3 center{0.1f, 0.2f, 0.3f};
-    const Vector3 normal{0.0f, 1.0f, 0.0f};
+    const Vector3 normal = Vector3{ 1.0f, 2.0f, 3.0f }.normalized();
     const Deg<Float> angle{72.0f};
 
     const Float cosAngleSq = pow(cos(angle/2.0f), 2.0f);
@@ -211,6 +211,13 @@ void IntersectionTest::triangleCone() {
         {center + 3.0f*normal, b + 3.0f*normal, c + 3.0f*normal}, /* vertex one inside */
         {a + 2.75f*normal, center + 2.75f*normal, c + 2.75f*normal}, /* vertex two inside */
         {a + 2.5f*normal, b + 2.5f*normal, center + 2.5f*normal}, /* vertex three inside */
+
+        /* Intersect edge from other side of cone plane */
+        {center + 5.0f*oX - 0.5f*normal, center - oX + normal, center - normal - oX},
+        {center - normal - oX, center - oX + normal, center + 5.0f*oX - normal},
+
+        /* Intersects on one edge, has one vertex on other half */
+        {center - 0.5f*normal - 0.5*oX, center + 0.5f*normal - 0.5f*oX, center + oX }, /* intersects */
     };
     const Vector3 outsideTriangles[][3]{
         {center - normal, center - 0.5f*normal, center - normal + Vector3::xAxis(0.2f)}, /* all outside on non-cone half */

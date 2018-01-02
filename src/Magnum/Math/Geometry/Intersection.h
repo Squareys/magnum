@@ -330,7 +330,7 @@ template<class T> bool triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, 
                         }
                     }
                 } else if(inFront[i] && !inFront[i+1]) {
-                    if(T(0) <= c1 && c2*normDotO <= c1*dirDotO) {
+                    if(T(0) <= c1 && c2*normDotO <= c1*dot(dir, normal)) {
                         const T c0 = normDotO*normDotO - cosAngleSq*o.dot();
                         if(c1*c1 >= c0*c2) {
                             return true;
@@ -338,7 +338,7 @@ template<class T> bool triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, 
                     }
                 } else if(!inFront[i] && inFront[i+1]) {
                     /* <--------> only changed condition below from entire block above */
-                    if(c1 <= -c2 && c2*normDotO <= c1*dirDotO) {
+                    if(c1 <= -c2 && c2*normDotO <= c1*dot(dir, normal)) {
                         const T c0 = normDotO*normDotO - cosAngleSq*o.dot();
                         if(c1*c1 >= c0*c2) {
                             return true;
