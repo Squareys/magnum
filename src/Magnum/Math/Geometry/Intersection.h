@@ -292,15 +292,14 @@ template<class T> bool triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, 
     for (int i = 0; i < 3; ++i) {
         const Vector3<T> diff = points[i] - origin;
         const T d = dot(normal, diff);
-        inFront[i] = d < T(0);
+        inFront[i] = d >= T(0);
         if(inFront[i]) {
-            if(d*d <= cosAngleSq*diff.dot()) {
+            if(d*d >= cosAngleSq*diff.dot()) {
                 return true;
             }
         } else {
             /* behind the cone */
         }
-        ++i;
     }
 
     if(!inFront[0] && !inFront[1] && !inFront[2]) {
@@ -311,7 +310,7 @@ template<class T> bool triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, 
     /* If any edge intersects, the triangle intersects, therefore test all of them */
     for(int i = 0; i < 3; ++i) {
         if(!inFront[i] && !inFront[i+1]) {
-            /* does not intesect */
+            /* does not intersect */
         } else {
             /* handle edges fully on the cone side */
             const Vector3<T> dir = points[i+1] - points[i];
@@ -324,8 +323,8 @@ template<class T> bool triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, 
                 const T normDotO = dot(normal, o);
                 const T c1 = d*normDotO - cosAngleSq*dirDotO;
                 if(inFront[i] && inFront[i+1]) {
-                    if(T(0) <= c1 && c1 <= c2) {
-                        const T c0 = dirDotO*dirDotO - cosAngleSq*o.dot();
+                    if(T(0) <= c1 && c1 <= -c2) {
+                        const T c0 = normDotO*normDotO - cosAngleSq*o.dot();
                         if(c1*c1 >= c0*c2) {
                             return true;
                         }
@@ -365,12 +364,14 @@ template<class T> bool triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, 
     const Vector3<T> nCrossU = cross(triangleNormal, u);
 
     if(dotTriangleConeNormal >= T(0)) {
-        if(dot(nCrossU, edge0) <= T(0) && dot(nCrossU, edge1) <= T(0)) {
-            return dot(nCrossU, edge2) <= dotTriangleConeNormal*triangleNormal.dot();
+        if(dot(nCrossU, edge0) <= T(0) && dot(nCrossU, edge1) >= T(0)) {
+            const T denom = dotTriangleConeNormal*triangleNormal.dot();
+            return dot(nCrossU, edge1) <= denom && dot(nCrossU, edge0) <= denom;
         }
     } else {
-        if(dot(nCrossU, edge0) >= T(0) && dot(nCrossU, edge1) >= T(0)) {
-            return dot(nCrossU, edge2) >= dotTriangleConeNormal*triangleNormal.dot();
+        if(dot(nCrossU, edge0) >= T(0) && dot(nCrossU, edge1) <= T(0)) {
+            const T denom = dotTriangleConeNormal*triangleNormal.dot();
+            return dot(nCrossU, edge1) >= denom && dot(nCrossU, edge0) >= denom;
         }
     }
 

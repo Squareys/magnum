@@ -186,8 +186,47 @@ void IntersectionTest::triangleCone() {
 
     const Float cosAngleSq = pow(cos(angle/2.0f), 2.0f);
 
-    /* Triangle fully inside cone */
-    CORRADE_VERIFY(Intersection::triangleCone(center+normal, center+0.5f*normal, center+normal+Vector3::xAxis(0.02f), center, normal, cosAngleSq));
+    /* Generate some triangles to cover various cases of intersection */
+    const Vector3 oX = Math::cross(Vector3::xAxis(), normal);
+    const Vector3 oY = Math::cross(Vector3::yAxis(), normal);
+
+    const Vector3 a = center - 10.0f*oX;
+    const Vector3 b = center + 4.0f*oX - 10.0f*oY;
+    const Vector3 c = center + 5.0f*oX - 2.0f*oY;
+
+    const Vector3 intersectingTriangles[][3]{
+        /* All vertices inside */
+        {center + normal, center + 0.5f*normal, center + normal + Vector3::xAxis(0.2f)},
+        /* Triangle bigger than cone, intersects */
+        {center + 5.0f*normal - 10.0f*oX, center + 5.0f*normal + 5.0f*oX - 10.0f*oY, center + 5.0f*normal + 5.0f*oX + 10.0f*oY},
+        /* Triangle bigger than cone, but inverted normal, intersects */
+        {center + 4.75f*normal + 5.0f*oX + 10.0f*oY, center + 4.75f*normal + 5.0f*oX - 10.0f*oY, center + 4.75f*normal - 10.0f*oX},
+
+        /* All vertices outside, but each one of the edges intersects */
+        {a + 4.0f*normal, b + 4.0f*normal, c + 4.0f*normal},
+        {b + 3.75f*normal, c + 3.75f*normal, a + 3.75f*normal},
+        {c + 3.5f*normal, a + 3.5f*normal, b + 3.5f*normal},
+
+        /* Exactly one vertex inside cone */
+        {center + 3.0f*normal, b + 3.0f*normal, c + 3.0f*normal}, /* vertex one inside */
+        {a + 2.75f*normal, center + 2.75f*normal, c + 2.75f*normal}, /* vertex two inside */
+        {a + 2.5f*normal, b + 2.5f*normal, center + 2.5f*normal}, /* vertex three inside */
+    };
+    const Vector3 outsideTriangles[][3]{
+        {center - normal, center - 0.5f*normal, center - normal + Vector3::xAxis(0.2f)}, /* all outside on non-cone half */
+        {(center + 10.0f*oX) + 2.0f*normal, b + 2.0f*normal, c + 2.0f*normal}, /* all outside, but on cone half */
+        {c + 1.75f*normal, b + 1.75f*normal, (center + 10.0f*oX) + 1.75f*normal}, /* all outside, but on cone half, flipped normal */
+    };
+
+    /* Verify intersecting triangles intersect */
+    for (const Vector3* t : intersectingTriangles) {
+        CORRADE_VERIFY(Math::Geometry::Intersection::triangleCone(t[0], t[1], t[2], center, normal, cosAngleSq));
+    }
+
+    /* Verify non-intersecting triangles do not intersect */
+    for (const Vector3* t : outsideTriangles) {
+        CORRADE_VERIFY(!Math::Geometry::Intersection::triangleCone(t[0], t[1], t[2], center, normal, cosAngleSq));
+    }
 }
 
 void IntersectionTest::lineCircle() {
