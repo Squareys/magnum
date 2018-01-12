@@ -156,6 +156,19 @@ of the frustum, since checking the corners is less efficient.
 */
 template<class T> bool boxFrustum(const Range3D<T>& box, const Frustum<T>& frustum);
 
+template<class T> bool sphereFrustum(const Vector3<T>& center, const T radius, const Frustum<T>& frustum) {
+    const T radiusSq = radius*radius;
+
+    for(const Vector4<T>& plane: frustum.planes()) {
+        /* The point is in front of one of the frustum planes (normals point
+           outwards) */
+        if(Distance::pointPlaneScaled<T>(center, plane) < radiusSq)
+            return false;
+    }
+
+    return true;
+}
+
 template<class T> bool pointFrustum(const Vector3<T>& point, const Frustum<T>& frustum) {
     for(const Vector4<T>& plane: frustum.planes()) {
         /* The point is in front of one of the frustum planes (normals point
@@ -198,8 +211,7 @@ template<class T> bool boxFrustum(const Range3D<T>& box, const Frustum<T>& frust
 
 Returns `true` if the point is inside the cone.
 
-@see pointCone(Vector3, Vector3, Vector3, T)
-@todo: That ref is never going to work...
+@see pointCone(Vector3, Vector3, Vector3, T) @todo: That ref is never going to work...
 */
 template<class T> bool pointCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, const Deg<T> angle) {
     const T x = T(1)+Math::pow<T>(Math::tan<T>(angle/T(2)), T(2));
@@ -225,6 +237,25 @@ template<class T> bool pointCone(const Vector3<T>& p, const Vector3<T>& origin, 
     const T lenA = dot(c, normal);
 
     return c.dot() <= lenA*lenA*tanAngleSquaredPlusOne;
+}
+
+template<class T> bool pointConeCos(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, const T cosAngle) {
+    const Vector3<T> c = p - origin;
+    const T lenA = dot(c, normal);
+
+    return lenA*lenA <= c.dot()*cosAngle;
+}
+
+template<class T> bool pointConeView(const Vector3<T>& p, const Matrix4<T>& coneView, const T tanAngle) {
+    /* Axis align cone */
+    const Vector3<T> transformed = coneView.transformPoint(p);
+    return pointZOriginCone(transformed, tanAngle);
+}
+
+template<class T> bool pointZOriginCone(const Vector3<T>& p, const T tanAngle) {
+    /* Axis align cone */
+    const T coneRadius = tanAngle*p.z();
+    return p.xy().dot() <= coneRadius*coneRadius;
 }
 
 /**
@@ -373,6 +404,256 @@ template<class T> bool triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, 
             const T denom = dotTriangleConeNormal*triangleNormal.dot();
             return dot(nCrossU, edge1) >= denom && dot(nCrossU, edge0) >= denom;
         }
+    }
+
+    return false;
+}
+
+template<class T> bool triangleOriginZCone(const Vector3<T> p[3], const T cosAngleSq, const T tanAngle) {
+    T dots[3];
+    T coneRadi[3];
+
+    /* A single point is sufficient for intersection */
+    for (int i = 0; i < 3; ++i) {
+        const Vector3<T>& p = points[i];
+
+        dots[i] = p.xy().dot();
+        coneRadi[i] = p.z()*p.z()*tanAngle*tanAngle;
+        if(dots[i] <= coneRadi[i]) {
+            return true;
+        }
+    }
+
+    if(p0.z() < 0 && p1.z() < 0 && p2.z() < 0) {
+        return false;
+    }
+
+    /* If any edge intersects, the triangle intersects */
+    for(int i = 0; i < 3; ++i) {
+        const Vector3<T>& p0 = points[i];
+        const Vector3<T>& p1 = points[(i + 1) & 0b11];
+
+        if(p0.z() < 0 && p1.z() < 0) {
+            /* does not intersect */
+        } else {
+            /* handle edges fully on the cone side */
+            const Vector3<T> dir = p1 - p0;
+            const T d = dir.z();
+
+            const T c2 = d*d - dir.dot()*cosAngleSq;
+            if(c2 < T(0)) {
+                const T dirDotO = dot(dir, points[i]);
+                const T normDotO = p0.z();
+                const T c1 = d*p0.z() - cosAngleSq*dirDotO;
+                const T c0 = p0.z()*p0.z() - cosAngleSq*o.dot();
+
+                if(p0.z() <= T(0) && p1.z() <= T(0)) {
+                    if(T(0) <= c1 && c1 <= -c2) {
+                        if(c1*c1 >= c0*c2) {
+                            return true;
+                        }
+                    }
+                } else if(p0.z() <= T(0) && p1.z() > T(0)) {
+                    if(T(0) <= c1 && c2*p0.z() <= c1*dir.z()) {
+                        if(c1*c1 >= c0*c2) {
+                            return true;
+                        }
+                    }
+                } else if(p0.z() > T(0) && p1.z() <= T(0)) {
+                    /* <--------> only changed condition below from entire block above */
+                    if(c1 <= -c2 && c2*p0.z() <= c1*dir.z()) {
+                        if(c1*c1 >= c0*c2) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /* plane test */
+    const Vector3<T> edge0 = points[1] - points[0];
+    const Vector3<T> edge1 = points[2] - points[1];
+    const Vector3<T> edge2 = points[0] - points[2];
+
+    const Vector3<T> triangleNormal = cross(edge0, edge1);
+    const T dotTriangleConeNormal = dot(triangleNormal, normal);
+
+    const Vector3<T> delta0 = points[0] - origin;
+    const T dotTriangleNormalDelta0 = dot(triangleNormal, delta0);
+
+    const Vector3<T> u = dotTriangleNormalDelta0*normal - dotTriangleConeNormal*delta0;
+    const Vector3<T> nCrossU = cross(triangleNormal, u);
+
+    if(dotTriangleConeNormal >= T(0)) {
+        if(dot(nCrossU, edge0) <= T(0) && dot(nCrossU, edge1) >= T(0)) {
+            const T denom = dotTriangleConeNormal*triangleNormal.dot();
+            return dot(nCrossU, edge1) <= denom && dot(nCrossU, edge0) <= denom;
+        }
+    } else {
+        if(dot(nCrossU, edge0) >= T(0) && dot(nCrossU, edge1) <= T(0)) {
+            const T denom = dotTriangleConeNormal*triangleNormal.dot();
+            return dot(nCrossU, edge1) >= denom && dot(nCrossU, edge0) >= denom;
+        }
+    }
+
+    return false;
+}
+
+/** from https://www.geometrictools.com/Books/GeometricTools/BookCorrections.html */
+//template<class T> bool conePlane(Cone cone, Plane plane) {
+//    const Vector3<T> diff = cone.C - plane.P;
+//    const T d = Dot(plane.N, diff);
+//    const T nDotD = Dot(plane.N, cone.D);
+//    const T r = sqrt(1 - nDotD*nDotD);
+//
+//    const T tmp0 = d + cone.h*nDotD;
+//    const T tmp1 = cone.h*cone.tanAngle*r;
+//
+//    const T vm = tmp0 - tmp1;
+//    const T vp = tmp0 + tmp1;
+//    const T t0 = min(d, min(vm, vp));
+//    const T t1 = max(d, max(vm, vp));
+//
+//    return t0 <= 0 && 0 <= t1;
+//}
+
+/**
+ * @param axis 0-2 axis of the normal
+ */
+template<class T, UnsignedInt axis> Vector2<T> coneAxisPlane(const T zDist, const Vector3<T>& origin, const Vector3<T>& normal, const T coneHeight, const T tanAngle) {
+    const T d = origin[axis] - zDist;
+    const T tmp0 = d + coneHeight*normal[axis];
+
+    const T r = sqrt(1 - normal[axis]*normal[axis]); // can be procomputed for the normal
+    const T tmp1 = coneHeight*tanAngle*r;
+
+    const T vm = tmp0 - tmp1;
+    const T vp = tmp0 + tmp1;
+    const T t0 = min(d, min(vm, vp));
+    const T t1 = max(d, max(vm, vp));
+
+    //const bool a = t0 <= 0;
+    //const bool b = 0 <= t1;
+
+    // Benchmark:
+    // const bool a = d <= 0 || vm <= 0 || vp <= 0;
+    // const bool b = d >= 0 || vm >= 0 || vp >= 0;
+
+    return {t0, t1};
+}
+
+template<class T> bool pointAABB(const Vector3<T>& p, const Vector3<T>& center, const Vector3<T>& extents) {
+    const T diffX = center.x()-p.x();
+    if(diffX > extents.x() || diffX < -extents.x()) {
+        return false;
+    }
+    const T diffY = p.y()-center.y();
+    if(diffY > extents.y() || diffY < -extents.y()) {
+        return false;
+    }
+    const T diffZ = p.z()-center.z();
+    if(diffZ > extents.z() || diffZ < -extents.z()) {
+        return false;
+    }
+
+    return true;
+}
+
+template<class T> Vector2<T> intervalUnion(const Vector3<T>& i1, const Vector3<T>& i2) {
+    return {Math::max(i1.x(), i2.x()), Math::min(i1.y(), i2.y())};
+}
+
+template<class T> bool aabbConeNope(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const T coneHeight, const Rad<T> angle) {
+    if(pointCone<T>(center, origin, normal, angle)) {
+        return true;
+    }
+
+    /* In the case that the cone does not intersect any of the AABB planes,
+     * it may still intersect, if the cone is fully inside the AABB, which we
+     * rule out first with this cheap check for whether the origin is inside
+     * the cone */
+    if(pointAABB(origin, center, extents)) {
+        return true;
+    }
+
+    const T tanAngle = tan(angle);
+
+    const Vector2<T> x1 = coneAxisPlane<T, 0>(center.x() + extents.x(), origin, normal, coneHeight, tanAngle);
+    const Vector2<T> x2 = coneAxisPlane<T, 0>(center.x() - extents.x(), origin, normal, coneHeight, tanAngle);
+
+    const Vector2<T> y1 = coneAxisPlane<T, 1>(center.y() + extents.y(), origin, normal, coneHeight, tanAngle);
+    const Vector2<T> y2 = coneAxisPlane<T, 1>(center.y() - extents.y(), origin, normal, coneHeight, tanAngle);
+
+    const Vector2<T> z1 = coneAxisPlane<T, 2>(center.z() + extents.z(), origin, normal, coneHeight, tanAngle);
+    const Vector2<T> z2 = coneAxisPlane<T, 2>(center.z() - extents.z(), origin, normal, coneHeight, tanAngle);
+
+    //TODO: Asssert that x1.x() < x2.x() etc
+    CORRADE_ASSERT(x1.x() < x2.x(), "not an interval", false);
+    CORRADE_ASSERT(y1.x() < y2.x(), "not an interval", false);
+    CORRADE_ASSERT(z1.x() < z2.x(), "not an interval", false);
+    CORRADE_ASSERT(x1.y() < x2.y(), "not an interval", false);
+    CORRADE_ASSERT(y1.y() < y2.y(), "not an interval", false);
+    CORRADE_ASSERT(z1.y() < z2.y(), "not an interval", false);
+
+    const Vector2<T> u0{
+        Math::max({x1.x(), y1.x(), z1.x()}),
+        Math::min({x2.x(), y2.x(), z2.x()})
+    };
+    const Vector2<T> u1{
+        Math::max({x1.y(), y1.y(), z1.y()}),
+        Math::min({x2.y(), y2.y(), z2.y()})
+    };
+    const bool a = u0.x() <= 0 && u0.y() <= 0;
+    const bool b = 0 <= u1.x() && u0.y() <= 1;
+
+    // Benchmark:
+    // const bool a = d <= 0 || vm <= 0 || vp <= 0;
+    // const bool b = d >= 0 || vm >= 0 || vp >= 0;
+
+    return a && b && u0.x() > u0.y() && u1.x() > u1.y();
+}
+
+template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const T coneHeight, const Rad<T> angle) {
+    const T x = T(1)+Math::pow<T>(Math::tan<T>(angle/T(2)), T(2));
+    return aabbCone(center, extents, origin, normal, coneHeight, x);
+}
+
+template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const T coneHeight, const T tanAngleSquaredPlusOne) {
+    const Vector3<T> c = center - origin;
+
+    for (int axis = 0; axis < 3; ++axis) {
+        const int Z = axis;
+        const int X = (axis + 1) % 3;
+        const int Y = (axis + 2) % 3;
+        if(normal[Z] != T(0)) {
+            const Vector3<T> i0 = normal*((center[Z]-extents[Z])/normal[Z]);
+            const Vector3<T> i1 = normal*((center[Z]+extents[Z])/normal[Z]);
+
+            for(auto i : {i0, i1}) {
+                Vector3<T> closestPoint = i;
+
+                if(i.x() - center[X] >= extents[X]) {
+                    closestPoint[X] = center[X] + extents[X];
+                } else if(i.x() - center[X] <= -extents[X]) {
+                    closestPoint[X] = center[X] - extents[X];
+                }
+                /* Else: normal intersects within X bounds */
+
+                if(i.x() - center[Y] >= extents[Y]) {
+                    closestPoint[Y] = center[Y] + extents[Y];
+                } else if(i.x() - center[Y] <= -extents[Y]) {
+                    closestPoint[Y] = center[Y] - extents[Y];
+                }
+                /* Else: normal intersects within Y bounds */
+
+                if(pointCone<T>(closestPoint, origin, normal, tanAngleSquaredPlusOne)) {
+                    /* Found a point in cone and aabb */
+                    return true;
+                }
+            }
+        }
+        // else: normal will intersect one of the other planes
     }
 
     return false;
