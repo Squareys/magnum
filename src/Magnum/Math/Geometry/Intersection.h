@@ -155,6 +155,72 @@ of the frustum, since checking the corners is less efficient.
 */
 template<class T> bool boxFrustum(const Range3D<T>& box, const Frustum<T>& frustum);
 
+/**
+@brief Intersection of a sphere and a camera frustum
+@param center   Sphere center
+@param radius   Sphere radius
+@param frustum  Frustum planes with normals pointing outwards
+
+Returns @cpp true @ce if the sphere intersects the frustum.
+
+Checks for each plane of the frustum whether the sphere is behind the plane (the
+points distance larger than the sphere's radius) using @ref Distance::pointPlaneScaled().
+*/
+template<class T> bool sphereFrustum(const Vector3<T>& center, T radius, const Frustum<T>& frustum);
+
+/**
+@brief Intersection of a point and a cone
+@param p        The point
+@param origin   Origin of the cone
+@param normal   Normal of the cone
+@param angle    Apex angle of the cone
+
+Returns @cpp true @ce if the point is inside the cone.
+
+@see pointCone(Vector3, Vector3, Vector3, T) @todo: That ref is never going to work...
+*/
+template<class T> bool pointCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, Deg<T> angle);
+
+/**
+@brief Faster version of intersection of a point and a cone
+@param p        The point
+@param origin   Origin of the cone
+@param normal   Normal of the cone
+@param tanAngleSqPlusOne Precomputed portion of the cone intersection equation: `Math::tan(angle/2)+1`
+
+Returns @cpp true @ce if the point is inside the cone.
+
+Uses the result of precomputing @f$x = \tan^2{\theta} + 1@f$.
+*/
+template<class T> bool pointCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, T tanAngleSqPlusOne);
+
+/**
+@brief Faster version of intersection of a point and a double cone
+@param p        The point
+@param origin   Origin of the cone
+@param normal   Normal of the cone
+@param tanAngleSqPlusOne Precomputed portion of the cone intersection equation:
+                         @cpp Math::tan(angle/2)+1 @ce
+
+Returns @cpp true @ce if the point is inside the double cone.
+
+Uses the result of precomputing @f$ x = \tan^2{\theta} + 1 @f$.
+*/
+template<class T> bool pointDoubleCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, T tanAngleSqPlusOne);
+
+/**
+@brief Intersection of a point and a double cone
+@param p        The point
+@param origin   Origin of the cone
+@param normal   Normal of the cone
+@param angle    Apex angle of the cone
+
+Returns @cpp true @ce if the point is inside the double cone.
+
+@see pointDoubleCone(Vector3, Vector3, Vector3, T) @todo: That ref is never going to work...
+*/
+template<class T> bool pointDoubleCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, Deg<T> angle);
+
 template<class T> bool pointFrustum(const Vector3<T>& point, const Frustum<T>& frustum) {
     for(const Vector4<T>& plane: frustum.planes()) {
         /* The point is in front of one of the frustum planes (normals point
@@ -186,6 +252,46 @@ template<class T> bool boxFrustum(const Range3D<T>& box, const Frustum<T>& frust
     /** @todo potentially check corners here to avoid false positives */
 
     return true;
+}
+
+template<class T> bool sphereFrustum(const Vector3<T>& center, const T radius, const Frustum<T>& frustum) {
+    const T radiusSq = radius*radius;
+
+    for(const Vector4<T>& plane: frustum.planes()) {
+        /* The sphere is in front of one of the frustum planes (normals point
+           outwards) */
+        if(Distance::pointPlaneScaled<T>(center, plane) < -radiusSq)
+            return false;
+    }
+
+    return true;
+}
+
+
+template<class T> bool pointCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, const Deg<T> angle) {
+    const T x = T(1)+Math::pow<T>(Math::tan<T>(angle/T(2)), T(2));
+
+    return pointCone(p, origin, normal, x);
+}
+
+template<class T> bool pointCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, const T tanAngleSqPlusOne) {
+    const Vector3<T> c = p - origin;
+    const T lenA = dot(c, normal);
+
+    return lenA >= 0 && c.dot() <= lenA*lenA*tanAngleSqPlusOne;
+}
+
+template<class T> bool pointDoubleCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, const Deg<T> angle) {
+    const T x = T(1)+Math::pow<T>(Math::tan<T>(angle/T(2)), T(2));
+
+    return pointDoubleCone(p, origin, normal, x);
+}
+
+template<class T> bool pointDoubleCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, const T tanAngleSqPlusOne) {
+    const Vector3<T> c = p - origin;
+    const T lenA = dot(c, normal);
+
+    return c.dot() <= lenA*lenA*tanAngleSqPlusOne;
 }
 
 }}}}

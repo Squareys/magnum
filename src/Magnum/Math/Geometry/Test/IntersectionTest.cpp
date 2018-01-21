@@ -27,6 +27,7 @@
 #include <Corrade/TestSuite/Tester.h>
 
 #include "Magnum/Math/Geometry/Intersection.h"
+#include "Magnum/Math/Angle.h"
 
 namespace Magnum { namespace Math { namespace Geometry { namespace Test {
 
@@ -38,6 +39,11 @@ struct IntersectionTest: Corrade::TestSuite::Tester {
 
     void pointFrustum();
     void boxFrustum();
+    void sphereFrustum();
+
+    void pointCone();
+    void pointDoubleCone();
+    void sphereCone();
 };
 
 typedef Math::Vector2<Float> Vector2;
@@ -52,7 +58,12 @@ IntersectionTest::IntersectionTest() {
               &IntersectionTest::lineLine,
 
               &IntersectionTest::pointFrustum,
-              &IntersectionTest::boxFrustum});
+              &IntersectionTest::boxFrustum,
+              &IntersectionTest::sphereFrustum,
+
+              &IntersectionTest::pointCone,
+              &IntersectionTest::pointDoubleCone,
+              &IntersectionTest::sphereCone});
 }
 
 void IntersectionTest::planeLine() {
@@ -138,6 +149,55 @@ void IntersectionTest::boxFrustum() {
     CORRADE_VERIFY(Intersection::boxFrustum(Range3D{Vector3{-100.0f}, Vector3{100.0f}}, frustum));
     /* Outside of frustum */
     CORRADE_VERIFY(!Intersection::boxFrustum(Range3D{Vector3{-10.0f}, Vector3{-5.0f}}, frustum));
+}
+
+void IntersectionTest::sphereFrustum() {
+    const Frustum frustum{
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {-1.0f, 0.0f, 0.0f, 10.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, -1.0f, 0.0f, 10.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, -1.0f, 10.0f}};
+
+    /* Sphere on edge */
+    CORRADE_VERIFY(Intersection::sphereFrustum({0.0f, 0.0f, -1.0f}, 1.5f, frustum));
+    /* Sphere inside */
+    CORRADE_VERIFY(Intersection::sphereFrustum({5.5f, 5.5f, 5.5f}, 1.5f,  frustum));
+    /* Sphere outside */
+    CORRADE_VERIFY(!Intersection::sphereFrustum({0.0f, 0.0f, 100.0f}, 0.5f, frustum));
+}
+
+void IntersectionTest::pointCone() {
+    const Vector3 center{0.1f, 0.2f, 0.3f};
+    const Vector3 normal{0.0f, 1.0f, 0.0f};
+    const Deg<Float> angle{72.0f};
+
+    /* Point on edge */
+    CORRADE_VERIFY(Intersection::pointCone(center, center, normal, angle));
+    /* Point inside */
+    CORRADE_VERIFY(Intersection::pointCone(center + Vector3{0.5f, 1.0f, 0.3f}, center, normal, angle));
+    /* Point outside */
+    CORRADE_VERIFY(!Intersection::pointCone({3.0f, -10.0f, 100.0f}, center, normal, angle));
+    CORRADE_VERIFY(!Intersection::pointCone({0.0f, 0.0f, 0.0f}, center, normal, angle));
+    /* Point behind the cone plane */
+    CORRADE_VERIFY(!Intersection::pointCone(-normal, center, normal, angle));
+}
+
+void IntersectionTest::pointDoubleCone() {
+    const Vector3 center{0.1f, 0.2f, 0.3f};
+    const Vector3 normal{0.0f, 1.0f, 0.0f};
+    const Deg<Float> angle{72.0f};
+
+    /* Point on edge */
+    CORRADE_VERIFY(Intersection::pointCone(center, center, normal, angle));
+    /* Point inside */
+    CORRADE_VERIFY(Intersection::pointCone(center + Vector3{0.5f, 1.0f, 0.3f}, center, normal, angle));
+    /* Point outside */
+    CORRADE_VERIFY(!Intersection::pointCone({3.0f, -10.0f, 100.0f}, center, normal, angle));
+    CORRADE_VERIFY(!Intersection::pointCone({0.0f, 0.0f, 0.0f}, center, normal, angle));
+    /* Point behind the cone plane */
+    CORRADE_VERIFY(!Intersection::pointCone(-normal, center, normal, angle));
 }
 
 }}}}
