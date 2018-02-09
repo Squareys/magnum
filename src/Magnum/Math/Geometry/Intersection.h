@@ -221,6 +221,30 @@ Returns @cpp true @ce if the point is inside the double cone.
 */
 template<class T> bool pointDoubleCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, Deg<T> angle);
 
+/**
+@brief Intersection of a sphere and a cone view
+@param sphereCenter Center of the sphere
+@param radius Radius of the sphere
+@param coneView View matrix with translation and rotation of the cone
+@param angle Cone opening angle
+
+Returns @cpp true @ce if the sphere intersects the cone.
+*/
+template<class T> bool sphereConeView(const Vector3<T> sphereCenter, T radius, const Matrix4<T> coneView, Rad<T> angle);
+
+/**
+@brief Faster version of intersection of a sphere and a cone view
+@param sphereCenter Center of the sphere
+@param radius Radius of the sphere
+@param coneView View matrix with translation and rotation of the cone
+@param sinAngle Sine of the cone angle
+@param cosAngle Cosine of the cone angle
+@param tanAngle Tangens of the cone angle
+
+Returns @cpp true @ce if the sphere intersects the cone.
+*/
+template<class T> bool sphereConeView(const Vector3<T> sphereCenter, T radius, const Matrix4<T> coneView, T sinAngle, T cosAngle, T tanAngle);
+
 template<class T> bool pointFrustum(const Vector3<T>& point, const Frustum<T>& frustum) {
     for(const Vector4<T>& plane: frustum.planes()) {
         /* The point is in front of one of the frustum planes (normals point
@@ -292,6 +316,29 @@ template<class T> bool pointDoubleCone(const Vector3<T>& p, const Vector3<T>& or
     const T lenA = dot(c, normal);
 
     return c.dot() <= lenA*lenA*tanAngleSqPlusOne;
+}
+
+template<class T> bool sphereConeView(const Vector3<T> sphereCenter, const T radius, const Matrix4<T> coneView, const Rad<T> angle) {
+    const Float sinAngle = Math::sin(angle/T(2)); /* precomputable */
+    const Float cosAngle = Math::cos(angle/T(2)); /* precomputable */
+    const Float tanAngle = Math::tan<T>(angle/T(2));
+    const Float tanAngleSquaredPlusOne = T(1)+tanAngle*tanAngle;
+
+    return sphereConeView(sphereCenter, radius, coneView, sinAngle, cosAngle, tanAngle);
+}
+
+template<class T> bool sphereConeView(const Vector3<T> sphereCenter, const T radius, const Matrix4<T> coneView, const T sinAngle, const T cosAngle, const T tanAngle) {
+    /* Axis align cone */
+    const Vector3<T> center = coneView.transformPoint(sphereCenter);
+
+    /* Test against plane which determins whether to test against shiften cone or center-sphere */
+    if (center.z() > -radius*cosAngle) {
+        /* Axis aligned point - cone test shifted so that the cones surface is extended by `radius` */
+        const T coneRadius = tanAngle*(center.z() + radius/sinAngle);
+        return center.xy().dot() <= coneRadius*coneRadius;
+    }
+
+    return false;
 }
 
 }}}}
