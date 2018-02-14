@@ -217,7 +217,7 @@ template<class T> bool pointDoubleCone(const Vector3<T>& p, const Vector3<T>& or
 
 Returns @cpp true @ce if the point is inside the double cone.
 
-@see pointDoubleCone(Vector3, Vector3, Vector3, T) @todo: That ref is never going to work...
+@see @ref pointDoubleCone(const Vector3&, const Vector3&, const Vector3&, T)
 */
 template<class T> bool pointDoubleCone(const Vector3<T>& p, const Vector3<T>& origin, const Vector3<T>& normal, Deg<T> angle);
 
