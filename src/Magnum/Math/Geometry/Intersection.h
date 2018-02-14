@@ -380,6 +380,54 @@ template<class T> bool sphereCone(
     }
 }
 
+template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const T coneHeight, const Rad<T> angle) {
+    const T x = T(1)+Math::pow<T>(Math::tan<T>(angle/T(2)), T(2));
+    return aabbCone(center, extents, origin, normal, coneHeight, x);
+}
+
+template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const T coneHeight, const T tanAngleSquaredPlusOne) {
+    const Vector3<T> c = center - origin;
+
+    for (int axis = 0; axis < 3; ++axis) {
+        const int Z = axis;
+        const int X = (axis + 1) % 3;
+        const int Y = (axis + 2) % 3;
+        if(normal[Z] != T(0)) {
+            float t0 = ((c[Z] - extents[Z]) / normal[Z]);
+            float t1 = ((c[Z] + extents[Z]) / normal[Z]);
+
+            const Vector3<T> i0 = normal*t0;
+            const Vector3<T> i1 = normal*t1;
+
+            for(auto i : {i0, i1}) {
+                Vector3<T> closestPoint = i;
+
+                if(i[X] - c[X] > extents[X]) {
+                    closestPoint[X] = c[X] + extents[X];
+                } else if(i[X] - c[X] < -extents[X]) {
+                    closestPoint[X] = c[X] - extents[X];
+                }
+                /* Else: normal intersects within X bounds */
+
+                if(i[Y] - c[Y] > extents[Y]) {
+                    closestPoint[Y] = c[Y] + extents[Y];
+                } else if(i[Y] - c[Y] < -extents[Y]) {
+                    closestPoint[Y] = c[Y] - extents[Y];
+                }
+                /* Else: normal intersects within Y bounds */
+
+                if (pointCone<T>(closestPoint, {}, normal, tanAngleSquaredPlusOne)) {
+                    /* Found a point in cone and aabb */
+                    return true;
+                }
+            }
+        }
+        // else: normal will intersect one of the other planes
+    }
+
+    return false;
+}
+
 }}}}
 
 #endif
