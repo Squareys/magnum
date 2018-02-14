@@ -33,7 +33,9 @@
 #include "Magnum/Math/Frustum.h"
 #include "Magnum/Math/Geometry/Distance.h"
 #include "Magnum/Math/Range.h"
+#include "Magnum/Math/Vector2.h"
 #include "Magnum/Math/Vector3.h"
+#include "Magnum/Math/Matrix4.h"
 
 namespace Magnum { namespace Math { namespace Geometry { namespace Intersection {
 
