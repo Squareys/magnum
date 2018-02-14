@@ -230,20 +230,31 @@ template<class T> bool pointDoubleCone(const Vector3<T>& p, const Vector3<T>& or
 
 Returns @cpp true @ce if the sphere intersects the cone.
 */
-template<class T> bool sphereConeView(const Vector3<T> sphereCenter, T radius, const Matrix4<T> coneView, Rad<T> angle);
+template<class T> bool sphereConeView(const Vector3<T>& sphereCenter, T radius, const Matrix4<T>& coneView, Rad<T> angle);
+
+template<class T> bool sphereConeView(const Vector3<T>& sphereCenter, T radius, const Matrix4<T>& coneView, T sinAngle, T cosAngle, T tanAngle);
 
 /**
-@brief Faster version of intersection of a sphere and a cone view
-@param sphereCenter Center of the sphere
-@param radius Radius of the sphere
-@param coneView View matrix with translation and rotation of the cone
-@param sinAngle Sine of the cone angle
-@param cosAngle Cosine of the cone angle
-@param tanAngle Tangens of the cone angle
+@brief Intersection of a sphere and a cone
+@param sphereCenter Sphere center
+@param radius Sphere radius
+@param origin Origin of the cone
+@param normal Cone normal
+@param angle Cone opening angle (0 < angle < pi).
 
-Returns @cpp true @ce if the sphere intersects the cone.
+Offsets the cone plane by @f$ -r\sin{\theta} \cdot \boldsymbol n @f$ (with  @f$ \theta @f$
+the cone's half-angle) which separates two half-spaces:
+In front of the plane, in which the sphere cone intersection test is equivalent
+to testing the sphere's center against a similarly offset cone (which is equivalent
+the cone with surface expanded by @f$ r @f$ in surface normal direction), and
+begind the plane, where the test is equivalent to testing whether the origin of
+the original cone intersects the sphere.
+
+Returns @cpp true @ce if the sphere intersects with the cone.
 */
-template<class T> bool sphereConeView(const Vector3<T> sphereCenter, T radius, const Matrix4<T> coneView, T sinAngle, T cosAngle, T tanAngle);
+template<class T> bool sphereCone(const Vector3<T>& sphereCenter, const T radius, const Vector3<T>& origin, const Vector3<T>& normal, const Rad<T> angle);
+
+template<class T> bool sphereCone(const Vector3<T>& sphereCenter, const T radius, const Vector3<T>& origin, const Vector3<T>& normal, const T sinAngle, const T tanAngleSquaredPlusOne);
 
 template<class T> bool pointFrustum(const Vector3<T>& point, const Frustum<T>& frustum) {
     for(const Vector4<T>& plane: frustum.planes()) {
@@ -318,7 +329,7 @@ template<class T> bool pointDoubleCone(const Vector3<T>& p, const Vector3<T>& or
     return c.dot() <= lenA*lenA*tanAngleSqPlusOne;
 }
 
-template<class T> bool sphereConeView(const Vector3<T> sphereCenter, const T radius, const Matrix4<T> coneView, const Rad<T> angle) {
+template<class T> bool sphereConeView(const Vector3<T>& sphereCenter, const T radius, const Matrix4<T>& coneView, const Rad<T> angle) {
     const Float sinAngle = Math::sin(angle/T(2)); /* precomputable */
     const Float cosAngle = Math::cos(angle/T(2)); /* precomputable */
     const Float tanAngle = Math::tan<T>(angle/T(2));
@@ -327,7 +338,7 @@ template<class T> bool sphereConeView(const Vector3<T> sphereCenter, const T rad
     return sphereConeView(sphereCenter, radius, coneView, sinAngle, cosAngle, tanAngle);
 }
 
-template<class T> bool sphereConeView(const Vector3<T> sphereCenter, const T radius, const Matrix4<T> coneView, const T sinAngle, const T cosAngle, const T tanAngle) {
+template<class T> bool sphereConeView(const Vector3<T>& sphereCenter, const T radius, const Matrix4<T>& coneView, const T sinAngle, const T cosAngle, const T tanAngle) {
     /* Axis align cone */
     const Vector3<T> center = coneView.transformPoint(sphereCenter);
 
@@ -339,6 +350,34 @@ template<class T> bool sphereConeView(const Vector3<T> sphereCenter, const T rad
     }
 
     return false;
+}
+
+template<class T> bool sphereCone(
+        const Vector3<T>& sCenter, const T radius,
+        const Vector3<T>& origin, const Vector3<T>& normal, const Rad<T> angle) {
+
+    const T sinAngle = Math::sin(angle / T(2)); /* precomputable */
+    const T tanAngleSquaredPlusOne = T(1)+Math::pow<T>(Math::tan<T>(angle/T(2)), T(2));
+
+    return sphereCone(sCenter, radius, origin, normal, sinAngle, tanAngleSquaredPlusOne);
+}
+
+template<class T> bool sphereCone(
+        const Vector3<T>& sCenter, const T radius,
+        const Vector3<T>& origin, const Vector3<T>& normal, const T sinAngle, const T tanAngleSquaredPlusOne) {
+
+    const Vector3<T> diff = sCenter - origin;
+
+    if (dot(diff, normal) > T(0)) {
+        /* point - cone test */
+        const Vector3<T> c = sinAngle*diff + (normal*radius);
+        const T lenA = dot(c, normal);
+
+        return c.dot() <= lenA*(lenA*tanAngleSquaredPlusOne);
+    } else {
+        /* Simple sphere plane check */
+        return diff.dot() <= radius*radius;
+    }
 }
 
 }}}}

@@ -44,6 +44,7 @@ struct IntersectionTest: Corrade::TestSuite::Tester {
     void pointCone();
     void pointDoubleCone();
     void sphereCone();
+
 };
 
 typedef Math::Vector2<Float> Vector2;
@@ -52,6 +53,8 @@ typedef Math::Vector4<Float> Vector4;
 typedef Math::Frustum<Float> Frustum;
 typedef Math::Constants<Float> Constants;
 typedef Math::Range3D<Float> Range3D;
+typedef Math::Deg<Float> Deg;
+typedef Math::Rad<Float> Rad;
 
 IntersectionTest::IntersectionTest() {
     addTests({&IntersectionTest::planeLine,
@@ -171,7 +174,7 @@ void IntersectionTest::sphereFrustum() {
 void IntersectionTest::pointCone() {
     const Vector3 center{0.1f, 0.2f, 0.3f};
     const Vector3 normal{0.0f, 1.0f, 0.0f};
-    const Deg<Float> angle{72.0f};
+    const Deg angle{72.0f};
 
     /* Point on edge */
     CORRADE_VERIFY(Intersection::pointCone(center, center, normal, angle));
@@ -186,8 +189,8 @@ void IntersectionTest::pointCone() {
 
 void IntersectionTest::pointDoubleCone() {
     const Vector3 center{0.1f, 0.2f, 0.3f};
-    const Vector3 normal{0.0f, 1.0f, 0.0f};
-    const Deg<Float> angle{72.0f};
+    const Vector3 normal{0.0f, 1.0f, 0.0f}; // TODO: Different normal maybe?
+    const Deg angle{72.0f};
 
     /* Point on edge */
     CORRADE_VERIFY(Intersection::pointCone(center, center, normal, angle));
@@ -198,6 +201,17 @@ void IntersectionTest::pointDoubleCone() {
     CORRADE_VERIFY(!Intersection::pointCone({0.0f, 0.0f, 0.0f}, center, normal, angle));
     /* Point behind the cone plane */
     CORRADE_VERIFY(!Intersection::pointCone(-normal, center, normal, angle));
+}
+
+void IntersectionTest::sphereCone() {
+    const Vector3 center{1.0f, -2.0f, 1.3f};
+    const Vector3 normal{Vector3{0.0f, 1.0f, 0.0f}.normalized()};
+    const Rad angle(Deg{72.0f});
+
+    /* Sphere fully contained in cone */
+    CORRADE_VERIFY(Intersection::sphereCone(center + normal*5.0f, 0.8f, center, normal, angle));
+    /* Sphere fully contained in double side of cone */
+    CORRADE_VERIFY(!Intersection::sphereCone(center + normal*-5.0f, 0.75f, center, normal, angle));
 }
 
 }}}}

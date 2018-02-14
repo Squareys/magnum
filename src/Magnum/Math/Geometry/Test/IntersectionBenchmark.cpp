@@ -1,7 +1,7 @@
 /*
     This file is part of Magnum.
 
-    Copyright © 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017
+    Copyright © 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018
               Vladimír Vondruš <mosra@centrum.cz>
     Copyright © 2018 Jonathan Hale <squareys@googlemail.com>
 
@@ -47,13 +47,13 @@ namespace Magnum { namespace Math { namespace Geometry { namespace Benchmark {
  * Returns `true` if the sphere intersects with the cone. */
 template<class T> bool sphereConeGT(
         const Math::Vector3<T>& sphereCenter, const T radius,
-        const Math::Vector3<T>& origin, const Math::Vector3<T>& normal, const Rad<T> angle) {
+        const Math::Vector3<T>& origin, const Math::Vector3<T>& normal, const Math::Rad<T> angle) {
     const Math::Vector3<T> diff = sphereCenter - origin;
     const Math::Vector3<T> dir = diff.normalized();
-    const Rad<T> halfAngle = angle/T(2);
+    const Math::Rad<T> halfAngle = angle/T(2);
 
     /* Compute angle between normal and point */
-    const Rad<T> actual = Math::acos(dot(normal, dir));
+    const Math::Rad<T> actual = Math::acos(dot(normal, dir));
 
     /* Distance from cone surface */
     const T distanceFromCone = Math::sin(actual - halfAngle)*diff.length();
@@ -72,6 +72,8 @@ typedef Math::Vector3<Float> Vector3;
 typedef Math::Vector4<Float> Vector4;
 typedef Math::Matrix4<Float> Matrix4;
 typedef Math::Frustum<Float> Frustum;
+typedef Math::Deg<Float> Deg;
+typedef Math::Rad<Float> Rad;
 
 struct IntersectionBenchmark: Corrade::TestSuite::Tester {
     explicit IntersectionBenchmark();
@@ -81,7 +83,7 @@ struct IntersectionBenchmark: Corrade::TestSuite::Tester {
     void sphereConeView();
 
     std::vector<std::pair<Vector3, Float>> _spheres;
-    std::vector<std::tuple<Vector3, Vector3, Rad<Float>>> _cones;
+    std::vector<std::tuple<Vector3, Vector3, Rad>> _cones;
 };
 
 IntersectionBenchmark::IntersectionBenchmark() {
@@ -103,7 +105,7 @@ IntersectionBenchmark::IntersectionBenchmark() {
     for(int i = 0; i < 4; ++i) {
         _cones.emplace_back(Vector3{pd(g), pd(g), pd(g)},
                 Vector3{pd(g), pd(g), pd(g)}.normalized(),
-                Rad<Float>(Deg<Float>(ad(g))));
+                Rad(Deg(ad(g))));
     }
 
     _spheres.reserve(100);
