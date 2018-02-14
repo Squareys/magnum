@@ -380,6 +380,93 @@ template<class T> bool sphereCone(
     }
 }
 
+/**
+ * Based on https://www.geometrictools.com/Documentation/IntersectionTriangleCone.pdf
+ */
+template<class T> bool triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, const Vector3<T>& p2, const Vector3<T>& origin, const Vector3<T>& normal, const T cosAngleSq) {
+    bool inFront[4]{false, false, false, false};
+    Vector3<T> points[4]{p0, p1, p2, p0}; //constexpr?
+
+    for (int i = 0; i < 3; ++i) {
+        const Vector3<T> diff = points[i] - origin;
+        const T d = dot(normal, diff);
+        inFront[i] = d >= T(0);
+        if(inFront[i]) {
+            if(d*d >= cosAngleSq*diff.dot()) {
+                return true;
+            }
+        } else {
+            /* behind the cone */
+        }
+    }
+
+    if(!inFront[0] && !inFront[1] && !inFront[2]) {
+        return false;
+    }
+
+    inFront[3] = inFront[1];
+    /* If any edge intersects, the triangle intersects, therefore test all of them */
+    for(int i = 0; i < 3; ++i) {
+        if(!inFront[i] && !inFront[i+1]) {
+            /* Does not intersect as behind the cone plane */
+            continue;
+        }
+
+        const Vector3<T> dir = points[i+1] - points[i];
+        const T d = dot(normal, dir);
+
+        const T c2 = d*d - dir.dot()*cosAngleSq;
+        if(c2 > T(0)) {
+            continue;
+        }
+
+        const Vector3<T> o = points[i] - origin;
+
+        const T dirDotO = dot(dir, o);
+        const T normDotO = dot(normal, o);
+
+        const T c1 = d*normDotO - cosAngleSq*dirDotO;
+        if(inFront[i] && inFront[i+1]) {
+            /* Handle edges fully on the cone side */
+            if(T(0) <= c1 && c1 <= -c2) {
+                const T c0 = normDotO*normDotO - cosAngleSq*o.dot();
+                if(c1*c1 >= c0*c2) {
+                    return true;
+                }
+            }
+        } else {
+            /* Handle edges that intersect cone plane */
+            if(((inFront[i] && T(0) <= c1) || (inFront[i+1] && c1 <= -c2))
+                && c2*normDotO <= c1*d) {
+                const T c0 = normDotO*normDotO - cosAngleSq*o.dot();
+                if(c1*c1 >= c0*c2) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    /* plane test */
+    const Vector3<T> edge0 = points[1] - points[0];
+    const Vector3<T> edge1 = points[2] - points[1];
+    const Vector3<T> edge2 = points[0] - points[2];
+
+    const Vector3<T> triangleNormal = cross(edge0, edge1);
+    const T dotTriangleConeNormal = dot(triangleNormal, normal);
+
+    const Vector3<T> delta0 = points[0] - origin;
+
+    const Vector3<T> u = dot(triangleNormal, delta0)*normal - dotTriangleConeNormal*delta0;
+    const Vector3<T> nCrossU = Math::sign(dotTriangleConeNormal)*cross(triangleNormal, u);
+
+    if(dot(nCrossU, edge0) <= T(0) && dot(nCrossU, edge1) >= T(0)) {
+        const T denom = dotTriangleConeNormal*triangleNormal.dot();
+        return dot(nCrossU, edge1) <= denom && dot(nCrossU, edge0) <= denom;
+    }
+
+    return false;
+}
+
 template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const T coneHeight, const Rad<T> angle) {
     const T x = T(1)+Math::pow<T>(Math::tan<T>(angle/T(2)), T(2));
     return aabbCone(center, extents, origin, normal, coneHeight, x);
