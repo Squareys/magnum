@@ -28,9 +28,11 @@ target_compile_definitions(MathGeometryDistanceTest PRIVATE "CORRADE_GRACEFUL_AS
 
 corrade_add_test(MathGeometryIntersectionTest IntersectionTest.cpp LIBRARIES MagnumMathTestLib)
 corrade_add_test(MathGeometryIntersectionBenchmark IntersectionBenchmark.cpp LIBRARIES MagnumMathTestLib)
+corrade_add_test(MathGeometryIntersectionBoxFrustumBenchmark IntersectionBoxFrustumBenchmark.cpp LIBRARIES MagnumMathTestLib)
 
 set_target_properties(
     MathGeometryDistanceTest
     MathGeometryIntersectionTest
     MathGeometryIntersectionBenchmark
+    MathGeometryIntersectionBoxFrustumBenchmark
     PROPERTIES FOLDER "Magnum/Math/Geometry/Test")

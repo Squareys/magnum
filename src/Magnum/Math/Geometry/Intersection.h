@@ -149,11 +149,15 @@ template<class T> bool pointFrustum(const Vector3<T>& point, const Frustum<T>& f
 
 Returns @cpp true @ce if the box intersects with the camera frustum.
 
-Counts for each plane of the frustum how many points of the box lie in front of
-the plane (outside of the frustum). If none, the box must lie entirely outside
-of the frustum and there is no intersection. Else, the box is considered as
-intersecting, even if it is merely corners of the box overlapping with corners
-of the frustum, since checking the corners is less efficient.
+Uses the "p/n-vertex" approach: First converts the @ref Range3D into a representation
+using center and extent which allows using the following condition for whether the
+plane is intersecting the box: @f[
+     \begin{array}{rcl}
+         d & = & \boldsymbol c \cdot \abs(\boldsymbol n) \\
+         r & = & \boldsymbol c \cdot \abs(\boldsymbol n) \\
+         d + r < 0
+     \end{array}
+@f]
 */
 template<class T> bool boxFrustum(const Range3D<T>& box, const Frustum<T>& frustum);
 
@@ -270,23 +274,19 @@ template<class T> bool pointFrustum(const Vector3<T>& point, const Frustum<T>& f
 }
 
 template<class T> bool boxFrustum(const Range3D<T>& box, const Frustum<T>& frustum) {
+    const Vector3<T> center = box.min() + box.max();
+    const Vector3<T> extent = box.max() - box.min();
+
     for(const Vector4<T>& plane: frustum.planes()) {
-        bool cornerHit = 0;
+        const Vector3<T> absPlaneNormal = Math::abs(plane.xyz());
 
-        for(UnsignedByte c = 0; c != 8; ++c) {
-            const Vector3<T> corner = Math::lerp(box.min(), box.max(), Math::BoolVector<3>{c});
+        const Float d = Math::dot(center, absPlaneNormal);
+        const Float r = Math::dot(extent, absPlaneNormal);
 
-            if(Distance::pointPlaneScaled<T>(corner, plane) >= T(0)) {
-                cornerHit = true;
-                break;
-            }
+        if(d + r < T(0)) {
+            return false;
         }
-
-        /* All corners are outside this plane */
-        if(!cornerHit) return false;
     }
-
-    /** @todo potentially check corners here to avoid false positives */
 
     return true;
 }
