@@ -34,7 +34,27 @@
 #include <tuple>
 #include <utility>
 
-namespace Magnum { namespace Math { namespace Geometry { namespace Benchmark {
+namespace Magnum { namespace Math { namespace Geometry { namespace Test {
+
+template<class T> bool boxFrustumNaive(const Math::Range3D<T>& box, const Math::Frustum<T>& frustum) {
+    for(const Math::Vector4<T>& plane: frustum.planes()) {
+        bool cornerHit = 0;
+
+        for(UnsignedByte c = 0; c != 8; ++c) {
+            const Math::Vector3<T> corner = Math::lerp(box.min(), box.max(), Math::BoolVector<3>{c});
+
+            if(Distance::pointPlaneScaled<T>(corner, plane) >= T(0)) {
+                cornerHit = true;
+                break;
+            }
+        }
+
+        /* All corners are outside this plane */
+        if(!cornerHit) return false;
+    }
+
+    return true;
+}
 
 /* @brief Ground truth, slow sphere cone intersection - calculating exact distances,
  *        no optimizations, no precomputations
@@ -72,24 +92,41 @@ typedef Math::Vector3<Float> Vector3;
 typedef Math::Vector4<Float> Vector4;
 typedef Math::Matrix4<Float> Matrix4;
 typedef Math::Frustum<Float> Frustum;
+typedef Math::Range3D<Float> Range3D;
 typedef Math::Deg<Float> Deg;
 typedef Math::Rad<Float> Rad;
 
 struct IntersectionBenchmark: Corrade::TestSuite::Tester {
     explicit IntersectionBenchmark();
 
+    void boxFrustumNaive();
+    void boxFrustum();
+
     void sphereConeNaive();
     void sphereCone();
     void sphereConeView();
 
+    std::vector<Range3D> _boxes;
+    const Frustum _frustum{
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {-1.0f, 0.0f, 0.0f, 10.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, -1.0f, 0.0f, 10.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, -1.0f, 10.0f}};
+
     std::vector<std::pair<Vector3, Float>> _spheres;
     std::vector<std::tuple<Vector3, Vector3, Rad>> _cones;
+
 };
 
 IntersectionBenchmark::IntersectionBenchmark() {
-    addBenchmarks({&IntersectionBenchmark::sphereConeNaive,
+    addBenchmarks({&IntersectionBenchmark::boxFrustumNaive,
+                   &IntersectionBenchmark::boxFrustum,
+
+                   &IntersectionBenchmark::sphereConeNaive,
                    &IntersectionBenchmark::sphereCone,
-                   &IntersectionBenchmark::sphereConeView}, 1000);
+                   &IntersectionBenchmark::sphereConeView}, 25);
 
     /* Generate random data for the benchmarks */
     std::random_device rnd;
@@ -100,6 +137,12 @@ IntersectionBenchmark::IntersectionBenchmark() {
     std::uniform_real_distribution<float> rd(0.0f, 5.0f);
     /* Cone angle distribution */
     std::uniform_real_distribution<float> ad(1.0f, 179.0f);
+
+    _boxes.reserve(512);
+    for(int i = 0; i < 512; ++i) {
+        _boxes.emplace_back(Vector3{pd(g), pd(g), pd(g)},
+                            Vector3{pd(g), pd(g), pd(g)});
+    }
 
     _cones.reserve(4);
     for(int i = 0; i < 4; ++i) {
@@ -114,9 +157,28 @@ IntersectionBenchmark::IntersectionBenchmark() {
     }
 }
 
+void IntersectionBenchmark::boxFrustumNaive() {
+    volatile bool b = false;
+    CORRADE_BENCHMARK(50) {
+        for(auto& box : _boxes) {
+            b = b ^ Test::boxFrustumNaive<Float>(box, _frustum);
+        }
+    }
+}
+
+void IntersectionBenchmark::boxFrustum() {
+    volatile bool b = false;
+    CORRADE_BENCHMARK(50) {
+        for(auto& box : _boxes) {
+            b = b ^ Intersection::boxFrustum(box, _frustum);
+        }
+    }
+}
+
+
 void IntersectionBenchmark::sphereConeNaive() {
     volatile bool b = false;
-    CORRADE_BENCHMARK(10) {
+    CORRADE_BENCHMARK(50) {
         for(auto& cone : _cones) {
             for(auto& sphere : _spheres) {
                 b = b ^ sphereConeGT<Float>(sphere.first, sphere.second, std::get<0>(cone), std::get<1>(cone), std::get<2>(cone));
@@ -127,7 +189,7 @@ void IntersectionBenchmark::sphereConeNaive() {
 
 void IntersectionBenchmark::sphereCone() {
     volatile bool b = false;
-    CORRADE_BENCHMARK(10) {
+    CORRADE_BENCHMARK(50) {
         for(auto& cone : _cones) {
             const Float sinAngle = Math::sin(std::get<2>(cone));
             const Float tanAngle = Math::tan(std::get<2>(cone));
@@ -141,7 +203,7 @@ void IntersectionBenchmark::sphereCone() {
 
 void IntersectionBenchmark::sphereConeView() {
     volatile bool b = false;
-    CORRADE_BENCHMARK(10) {
+    CORRADE_BENCHMARK(50) {
         for(auto& cone : _cones) {
             const Matrix4 coneView = coneViewFromCone(std::get<0>(cone), std::get<1>(cone));
             for(auto& sphere : _spheres) {
@@ -153,4 +215,4 @@ void IntersectionBenchmark::sphereConeView() {
 
 }}}}
 
-CORRADE_TEST_MAIN(Magnum::Math::Geometry::Benchmark::IntersectionBenchmark)
+CORRADE_TEST_MAIN(Magnum::Math::Geometry::Test::IntersectionBenchmark)
