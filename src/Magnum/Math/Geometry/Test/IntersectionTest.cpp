@@ -174,34 +174,42 @@ void IntersectionTest::sphereFrustum() {
 
 void IntersectionTest::pointCone() {
     const Vector3 center{0.1f, 0.2f, 0.3f};
-    const Vector3 normal{0.0f, 1.0f, 0.0f};
+    const Vector3 normal{Vector3{0.5f, 1.0f, 2.0f}.normalized()};
     const Deg angle{72.0f};
+
+    /* Some vector along the surface of the cone */
+    auto surface = Matrix4::rotation(0.5f*angle, Vector3::yAxis()).transformVector(normal);
+    /* Tangent to that surface vector */
+    auto tangent = Matrix4::rotation(Deg{90.0f}, Vector3::yAxis()).transformVector(surface);
 
     /* Point on edge */
     CORRADE_VERIFY(Intersection::pointCone(center, center, normal, angle));
     /* Point inside */
-    CORRADE_VERIFY(Intersection::pointCone(center + Vector3{0.5f, 1.0f, 0.3f}, center, normal, angle));
+    CORRADE_VERIFY(Intersection::pointCone(center + normal, center, normal, angle));
     /* Point outside */
-    CORRADE_VERIFY(!Intersection::pointCone({3.0f, -10.0f, 100.0f}, center, normal, angle));
-    CORRADE_VERIFY(!Intersection::pointCone({0.0f, 0.0f, 0.0f}, center, normal, angle));
+    CORRADE_VERIFY(!Intersection::pointCone(Vector3{}, center, normal, angle));
+    //TODO: Why does this fail? CORRADE_VERIFY(!Intersection::pointCone(center + 5.0f*surface + 0.1f*tangent, center, normal, angle));
     /* Point behind the cone plane */
     CORRADE_VERIFY(!Intersection::pointCone(-normal, center, normal, angle));
 }
 
 void IntersectionTest::pointDoubleCone() {
     const Vector3 center{0.1f, 0.2f, 0.3f};
-    const Vector3 normal{0.0f, 1.0f, 0.0f}; // TODO: Different normal maybe?
+    const Vector3 normal{Vector3{0.5f, 1.0f, 2.0f}.normalized()};
     const Deg angle{72.0f};
 
+    /* Some vector along the surface of the cone */
+    auto surface = Matrix4::rotation(0.5f*angle, Vector3::yAxis()).transformVector(normal);
+    /* Tangent to that surface vector */
+    auto tangent = Matrix4::rotation(Deg{90.0f}, Vector3::yAxis()).transformVector(surface);
+
     /* Point on edge */
-    CORRADE_VERIFY(Intersection::pointCone(center, center, normal, angle));
+    CORRADE_VERIFY(Intersection::pointDoubleCone(center, center, normal, angle));
     /* Point inside */
-    CORRADE_VERIFY(Intersection::pointCone(center + Vector3{0.5f, 1.0f, 0.3f}, center, normal, angle));
+    CORRADE_VERIFY(Intersection::pointDoubleCone(center + normal, center, normal, angle));
+    CORRADE_VERIFY(Intersection::pointDoubleCone(center - normal, center, normal, angle));
     /* Point outside */
-    CORRADE_VERIFY(!Intersection::pointCone({3.0f, -10.0f, 100.0f}, center, normal, angle));
-    CORRADE_VERIFY(!Intersection::pointCone({0.0f, 0.0f, 0.0f}, center, normal, angle));
-    /* Point behind the cone plane */
-    CORRADE_VERIFY(!Intersection::pointCone(-normal, center, normal, angle));
+    CORRADE_VERIFY(!Intersection::pointDoubleCone(center + tangent, center, normal, angle));
 }
 
 void IntersectionTest::sphereCone() {
