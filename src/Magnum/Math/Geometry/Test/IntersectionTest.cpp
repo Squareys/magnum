@@ -50,6 +50,7 @@ struct IntersectionTest: Corrade::TestSuite::Tester {
 typedef Math::Vector2<Float> Vector2;
 typedef Math::Vector3<Float> Vector3;
 typedef Math::Vector4<Float> Vector4;
+typedef Math::Matrix4<Float> Matrix4;
 typedef Math::Frustum<Float> Frustum;
 typedef Math::Constants<Float> Constants;
 typedef Math::Range3D<Float> Range3D;
@@ -205,13 +206,43 @@ void IntersectionTest::pointDoubleCone() {
 
 void IntersectionTest::sphereCone() {
     const Vector3 center{1.0f, -2.0f, 1.3f};
-    const Vector3 normal{Vector3{0.0f, 1.0f, 0.0f}.normalized()};
+    const Vector3 normal{Vector3{0.5f, 1.0f, 2.0f}.normalized()};
     const Rad angle(Deg{72.0f});
+
+    /* Some vector along the surface of the cone */
+    auto surface = Matrix4::rotation(0.5f*angle, Vector3::yAxis()).transformVector(normal);
+    /* Tangent to that surface vector */
+    auto tangent = Matrix4::rotation(Deg{90.0f}, Vector3::yAxis()).transformVector(surface);
 
     /* Sphere fully contained in cone */
     CORRADE_VERIFY(Intersection::sphereCone(center + normal*5.0f, 0.8f, center, normal, angle));
     /* Sphere fully contained in double side of cone */
     CORRADE_VERIFY(!Intersection::sphereCone(center + normal*-5.0f, 0.75f, center, normal, angle));
+    /* Sphere fully outside of the cone */
+    CORRADE_VERIFY(!Intersection::sphereCone(center + surface + tangent*5.0f, 0.75f, center, normal, angle));
+
+    /* Sphere intersecting apex with sphere center behind the cone plane */
+    CORRADE_VERIFY(Intersection::sphereCone(center - normal*0.1f, 0.55f, center, normal, angle));
+    /* Sphere intersecting apex with sphere center in front of the cone plane */
+    CORRADE_VERIFY(Intersection::sphereCone(center + normal*0.1f, 0.55f, center, normal, angle));
+
+    /* Sphere barely touching the surface of the cone, from inside and outside the cone */
+    CORRADE_VERIFY(Intersection::sphereCone(center + 4.0f*surface + tangent*0.50f, 0.50f, center, normal, angle));
+    CORRADE_VERIFY(Intersection::sphereCone(center + 4.0f*surface - tangent*0.50f, 0.50f, center, normal, angle));
+    /* Same on double side of the cone */
+    CORRADE_VERIFY(!Intersection::sphereCone(center - 4.0f*surface + tangent*0.50f, 0.50f, center, normal, angle));
+    CORRADE_VERIFY(!Intersection::sphereCone(center - 4.0f*surface - tangent*0.50f, 0.50f, center, normal, angle));
+
+    /* Sphere clearly, but not fully intersecting the cone */
+    CORRADE_VERIFY(Intersection::sphereCone(center + surface + tangent*0.25f, 0.50f, center, normal, angle));
+    /* Sphere with center on the cone's surface */
+    CORRADE_VERIFY(Intersection::sphereCone(center + 4.0f*surface, 0.50f, center, normal, angle));
+
+    /* Same as above on double side of the cone */
+    CORRADE_VERIFY(!Intersection::sphereCone(center - surface + tangent*0.25f, 0.50f, center, normal, angle));
+    CORRADE_VERIFY(!Intersection::sphereCone(center - 4.0f*surface, 0.50f, center, normal, angle));
+}
+
 }
 
 }}}}
