@@ -262,6 +262,55 @@ template<class T> bool sphereCone(const Vector3<T>& sphereCenter, const T radius
 
 template<class T> bool sphereCone(const Vector3<T>& sphereCenter, const T radius, const Vector3<T>& origin, const Vector3<T>& normal, const T sinAngle, const T tanAngleSquaredPlusOne);
 
+/**
+@brief Intersection of an axis aligned bounding box and a cone
+
+@param center Center of the AABB
+@param extents (Half-)Extents of the AABB
+@param origin Origin of the cone
+@param normal Normal of the cone
+@param angle Opening angle of the cone
+
+On each axis finds the intersection points of the cones axis with infinite planes
+obtained by extending the two faces of the box that are perpendicular to that axis.
+
+The intersection points on the planes perpendicular to axis @f$ a \in {0, 1, 2} @f$
+are given by @f[
+    \boldsymbol i = \boldsymbol n \cdot \frac{(\boldsymbol c_a - \boldsymbol o_a) \pm \boldsymbol e_a}{\boldsymbol n_a}
+@f]
+
+with normal @f$ n @f$, cone origin @f$ o @f$, box center @f$ x @f$ and box extents @f$ e @f$.
+
+The points on the faces that are closest to this intersection point are the closest
+to the cones axis and are tested for intersection with the cone using
+@ref pointCone(const Vector3<T>&, const Vector3<T>&, const Vector3<T>&, const T)
+
+As soon as an intersecting point is found, the function returns @cpp true @ce.
+If all points lie outside of the cone, it will return @cpp false @ce.
+
+Returns @cpp true @ce if the axis aligned bounding box intersects the cone.
+*/
+template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const Rad<T> angle);
+
+template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const T tanAngleSquaredPlusOne);
+
+/**
+@brief Intersection of a range and a cone
+
+@param range The range
+@param origin Origin of the cone
+@param normal Normal of the cone
+@param angle Opening angle of the cone
+
+Will convert the range into center/extents representation and pass it on to
+@ref aabbCone(const Vector3<T>, const Vector3<T>&, const Vector3<T>&, const Vector3<T>&, Rad<T>)
+
+Returns @cpp true @ce if the range intersects the cone.
+*/
+template<class T> bool rangeCone(const Range3D<T>& range, const Vector3<T>& origin, const Vector3<T>& normal, const Rad<T> angle) {
+    return aabbCone((range.min() - range.max())/T(2), (range.max() - range.min())/T(2), origin, normal, x);
+}
+
 template<class T> bool pointFrustum(const Vector3<T>& point, const Frustum<T>& frustum) {
     for(const Vector4<T>& plane: frustum.planes()) {
         /* The point is in front of one of the frustum planes (normals point
@@ -469,12 +518,12 @@ template<class T> bool triangleCone(const Vector3<T>& p0, const Vector3<T>& p1, 
     return false;
 }
 
-template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const T coneHeight, const Rad<T> angle) {
-    const T x = T(1)+Math::pow<T>(Math::tan<T>(angle/T(2)), T(2));
-    return aabbCone(center, extents, origin, normal, coneHeight, x);
+template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const Rad<T> angle) {
+    const T x = T(1) + Math::pow<T>(Math::tan<T>(angle/T(2)), T(2));
+    return aabbCone(center, extents, origin, normal, x);
 }
 
-template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const T coneHeight, const T tanAngleSquaredPlusOne) {
+template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& extents, const Vector3<T>& origin, const Vector3<T>& normal, const T tanAngleSquaredPlusOne) {
     const Vector3<T> c = center - origin;
 
     for (int axis = 0; axis < 3; ++axis) {
@@ -482,8 +531,8 @@ template<class T> bool aabbCone(const Vector3<T>& center, const Vector3<T>& exte
         const int X = (axis + 1) % 3;
         const int Y = (axis + 2) % 3;
         if(normal[Z] != T(0)) {
-            float t0 = ((c[Z] - extents[Z]) / normal[Z]);
-            float t1 = ((c[Z] + extents[Z]) / normal[Z]);
+            float t0 = ((c[Z] - extents[Z])/normal[Z]);
+            float t1 = ((c[Z] + extents[Z])/normal[Z]);
 
             const Vector3<T> i0 = normal*t0;
             const Vector3<T> i1 = normal*t1;

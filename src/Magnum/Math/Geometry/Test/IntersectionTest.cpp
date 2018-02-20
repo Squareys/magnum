@@ -44,7 +44,7 @@ struct IntersectionTest: Corrade::TestSuite::Tester {
     void pointCone();
     void pointDoubleCone();
     void sphereCone();
-
+    void aabbCone();
 };
 
 typedef Math::Vector2<Float> Vector2;
@@ -67,7 +67,8 @@ IntersectionTest::IntersectionTest() {
 
               &IntersectionTest::pointCone,
               &IntersectionTest::pointDoubleCone,
-              &IntersectionTest::sphereCone});
+              &IntersectionTest::sphereCone,
+              &IntersectionTest::aabbCone});
 }
 
 void IntersectionTest::planeLine() {
@@ -251,6 +252,26 @@ void IntersectionTest::sphereCone() {
     CORRADE_VERIFY(!Intersection::sphereCone(center - 4.0f*surface, 0.50f, center, normal, angle));
 }
 
+void IntersectionTest::aabbCone() {
+    const Vector3 center{1.0f, -2.0f, 1.3f};
+    const Vector3 normal{0.453154f, 0.422618f, 0.784886f};
+    const Rad angle(Deg{72.0f});
+
+    /* Box fully inside cone */
+    CORRADE_VERIFY(Intersection::aabbCone(15.0f*normal, Vector3{1.0f}, center, normal, angle));
+    /* Box intersecting cone */
+    CORRADE_VERIFY(Intersection::aabbCone(5.0f*normal, {10.0f, 10.0f, 0.5f}, center, normal, angle));
+    CORRADE_VERIFY(Intersection::aabbCone({}, { 1.0f, 2.0f, 3.0f }, center, normal, angle));
+    /* Cone inside large box */
+    CORRADE_VERIFY(Intersection::aabbCone(12.0f*normal, {20.0f, 20.0f, 20.0f}, center, normal, angle));
+    /* Same corner chosen on all intersecting faces */
+    CORRADE_VERIFY(Intersection::aabbCone({2.5f, 0.0f, 0.0f}, {0.5f, 0.1f, 1.5f}, center, {0.353553f, 0.707107f, 0.612372f}, angle));
+
+    /* Boxes outside cone */
+    CORRADE_VERIFY(!Intersection::aabbCone({5.0f, 5.0f, 0.0f}, {3.0f, 2.0f, 2.0f}, center, normal, angle));
+    CORRADE_VERIFY(!Intersection::aabbCone({8.0f, 7.0f, -5.0f}, {2.0f, 2.0f, 2.0f}, center, normal, angle));
+    /* Box fully contained in double cone */
+    CORRADE_VERIFY(!Intersection::aabbCone(-15.0f*normal, Vector3{1.0f}, center, normal, angle));
 }
 
 }}}}
