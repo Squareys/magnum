@@ -5,7 +5,7 @@
 
     Copyright © 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018
               Vladimír Vondruš <mosra@centrum.cz>
-    Copyright © 2016 Jonathan Hale <squareys@googlemail.com>
+    Copyright © 2016, 2018 Jonathan Hale <squareys@googlemail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -329,10 +329,9 @@ template<class T> bool boxFrustum(const Range3D<T>& box, const Frustum<T>& frust
     for(const Vector4<T>& plane: frustum.planes()) {
         const Vector3<T> absPlaneNormal = Math::abs(plane.xyz());
 
-        const Float d = Math::dot(center, absPlaneNormal);
+        const Float d = Math::dot(center, plane.xyz());
         const Float r = Math::dot(extent, absPlaneNormal);
-
-        if(d + r < T(0)) {
+        if(d + r < -T(2)*plane.w()) {
             return false;
         }
     }
