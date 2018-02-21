@@ -25,12 +25,14 @@
 */
 
 #include <Corrade/TestSuite/Tester.h>
+#include <Corrade/Containers/Array.h>
 
 #include <random>
 #include <tuple>
 #include <utility>
 
 #include "Magnum/Math/Geometry/Intersection.h"
+#include "Magnum/Math/Geometry/IntersectionBatch.h"
 #include "Magnum/Math/Angle.h"
 #include "Magnum/Math/Matrix4.h"
 
@@ -102,6 +104,8 @@ struct IntersectionBenchmark: Corrade::TestSuite::Tester {
     void boxFrustumNaive();
     void boxFrustum();
 
+    void rangeFrustumBatch();
+
     void sphereConeNaive();
     void sphereCone();
     void sphereConeView();
@@ -123,6 +127,7 @@ struct IntersectionBenchmark: Corrade::TestSuite::Tester {
 IntersectionBenchmark::IntersectionBenchmark() {
     addBenchmarks({&IntersectionBenchmark::boxFrustumNaive,
                    &IntersectionBenchmark::boxFrustum,
+                   &IntersectionBenchmark::rangeFrustumBatch,
 
                    &IntersectionBenchmark::sphereConeNaive,
                    &IntersectionBenchmark::sphereCone,
@@ -171,6 +176,17 @@ void IntersectionBenchmark::boxFrustum() {
     }
 }
 
+void IntersectionBenchmark::rangeFrustumBatch() {
+    Corrade::Containers::Array<UnsignedLong> results{size_t(Math::ceil(_boxes.size()/64.0f))};
+    CORRADE_BENCHMARK(50) {
+        Intersection::rangeBatchFrustum(Corrade::Containers::ArrayView<const Range3D>(_boxes.data(), _boxes.size()), _frustum, results);
+    }
+
+    volatile long r = 0;
+    for(long l : results) {
+        r ^= l;
+    }
+}
 
 void IntersectionBenchmark::sphereConeNaive() {
     volatile bool b = false;

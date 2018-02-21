@@ -25,7 +25,8 @@
 
 set(MagnumMathGeometry_HEADERS
     Distance.h
-    Intersection.h)
+    Intersection.h
+    IntersectionBatch.h)
 
 # Force IDEs to display all header files in project view
 add_custom_target(MagnumMathGeometry SOURCES ${MagnumMathGeometry_HEADERS})
