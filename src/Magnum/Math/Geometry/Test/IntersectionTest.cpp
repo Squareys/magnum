@@ -143,9 +143,9 @@ void IntersectionTest::pointFrustum() {
 void IntersectionTest::boxFrustum() {
     const Frustum frustum{
         {1.0f, 0.0f, 0.0f, 0.0f},
-        {-1.0f, 0.0f, 0.0f, 10.0f},
+        {-1.0f, 0.0f, 0.0f, 5.0f},
         {0.0f, 1.0f, 0.0f, 0.0f},
-        {0.0f, -1.0f, 0.0f, 10.0f},
+        {0.0f, -1.0f, 0.0f, 1.0f},
         {0.0f, 0.0f, 1.0f, 0.0f},
         {0.0f, 0.0f, -1.0f, 10.0f}};
 
