@@ -106,6 +106,8 @@ struct IntersectionBenchmark: Corrade::TestSuite::Tester {
     void rangeFrustumBatch();
 
     void sphereFrustum();
+    void sphereFrustumBatch();
+
     void sphereConeNaive();
     void sphereCone();
     void sphereConeView();
@@ -129,6 +131,8 @@ IntersectionBenchmark::IntersectionBenchmark() {
                    &IntersectionBenchmark::rangeFrustumBatch,
 
                    &IntersectionBenchmark::sphereFrustum,
+                   &IntersectionBenchmark::sphereFrustumBatch,
+
                    &IntersectionBenchmark::sphereConeNaive,
                    &IntersectionBenchmark::sphereCone,
                    &IntersectionBenchmark::sphereConeView}, 25);
@@ -189,6 +193,18 @@ void IntersectionBenchmark::sphereFrustum() {
     volatile bool b = false;
     CORRADE_BENCHMARK(50) for(auto& sphere: _spheres) {
         b = b ^ Intersection::sphereFrustum(sphere.xyz(), sphere.w(), _frustum);
+    }
+}
+
+void IntersectionBenchmark::sphereFrustumBatch() {
+    Corrade::Containers::Array<UnsignedLong> results{size_t(Math::ceil(_boxes.size()/64.0f))};
+    CORRADE_BENCHMARK(50) {
+        Intersection::sphereBatchFrustum(Corrade::Containers::ArrayView<const Vector4>(_spheres.data(), _spheres.size()), _frustum, results);
+    }
+
+    volatile long r = 0;
+    for(long l : results) {
+        r ^= l;
     }
 }
 

@@ -55,6 +55,17 @@ big to fit the results of intersection.
 */
 template<typename T> bool rangeBatchFrustum(Corrade::Containers::ArrayView<const Range3D<T>> rangeBatch, const Frustum<T>& frustum, Corrade::Containers::ArrayView<UnsignedLong> outBits);
 
+/**
+@brief Batch sphere frustum intersection
+@param sphereBatch Input spheres (center, radius)
+@param frustum Frustum to intersect with
+@param outBits Bitset to receive the result
+
+Size of @cpp outBits @ce needs to be at least @cpp Math::ceil(sphereBatch/64.0f) @ce
+big to fit the results of intersection.
+*/
+template<typename T> bool sphereBatchFrustum(Corrade::Containers::ArrayView<const Vector4<T>> rangeBatch, const Frustum<T>& frustum, Corrade::Containers::ArrayView<UnsignedLong> outBits);
+
 template<typename T> bool rangeBatchFrustum(Corrade::Containers::ArrayView<const Range3D<T>> rangeBatch, const Frustum<T>& frustum, Corrade::Containers::ArrayView<UnsignedLong> outBits) {
     /* Plane with abs normal and precomputed 2*w */
     alignas(16) const Vector4<T> absPlane[]{
@@ -96,6 +107,23 @@ template<typename T> bool rangeBatchFrustum(Corrade::Containers::ArrayView<const
     }
 
     return true;
+}
+
+template<class T> bool sphereBatchCone(ArrayView<const Vector4<T>> spheres, const Vector3<T>& origin, const Vector3<T>& normal, const T sinAngle, const T tanAngleSquaredPlusOne) {
+    for (auto& sphere : spheres) {
+        const Vector3<T> diff = sCenter - origin;
+
+        if(dot(diff, normal) > T(0)) {
+            /* point - cone test */
+            const Vector3<T> c = sinAngle*diff + (normal*radius);
+            const T lenA = dot(c, normal);
+
+            return c.dot() <= lenA * (lenA*tanAngleSquaredPlusOne);
+        } else {
+            /* Simple sphere plane check */
+            return diff.dot() <= radius * radius;
+        }
+    }
 }
 
 }}}}
