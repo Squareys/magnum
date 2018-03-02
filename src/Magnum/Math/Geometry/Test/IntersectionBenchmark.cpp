@@ -103,14 +103,13 @@ struct IntersectionBenchmark: Corrade::TestSuite::Tester {
 
     void boxFrustumNaive();
     void boxFrustum();
-
     void rangeFrustumBatch();
 
+    void sphereFrustum();
     void sphereConeNaive();
     void sphereCone();
     void sphereConeView();
 
-    std::vector<Range3D> _boxes;
     const Frustum _frustum{
         {1.0f, 0.0f, 0.0f, 0.0f},
         {-1.0f, 0.0f, 0.0f, 10.0f},
@@ -118,10 +117,10 @@ struct IntersectionBenchmark: Corrade::TestSuite::Tester {
         {0.0f, -1.0f, 0.0f, 10.0f},
         {0.0f, 0.0f, 1.0f, 0.0f},
         {0.0f, 0.0f, -1.0f, 10.0f}};
+    std::tuple<Vector3, Vector3, Rad> _cone;
 
-    std::vector<std::pair<Vector3, Float>> _spheres;
-    std::vector<std::tuple<Vector3, Vector3, Rad>> _cones;
-
+    std::vector<Range3D> _boxes;
+    std::vector<Vector4> _spheres;
 };
 
 IntersectionBenchmark::IntersectionBenchmark() {
@@ -129,6 +128,7 @@ IntersectionBenchmark::IntersectionBenchmark() {
                    &IntersectionBenchmark::boxFrustum,
                    &IntersectionBenchmark::rangeFrustumBatch,
 
+                   &IntersectionBenchmark::sphereFrustum,
                    &IntersectionBenchmark::sphereConeNaive,
                    &IntersectionBenchmark::sphereCone,
                    &IntersectionBenchmark::sphereConeView}, 25);
@@ -143,21 +143,18 @@ IntersectionBenchmark::IntersectionBenchmark() {
     /* Cone angle distribution */
     std::uniform_real_distribution<float> ad(1.0f, 179.0f);
 
+    _cone = std::make_tuple(Vector3{pd(g), pd(g), pd(g)},
+                Vector3{pd(g), pd(g), pd(g)}.normalized(),
+                Rad(Deg(ad(g))));
+
     _boxes.reserve(512);
     for(int i = 0; i < 512; ++i) {
         _boxes.emplace_back(Vector3{pd(g), pd(g), pd(g)},
                             Vector3{pd(g), pd(g), pd(g)});
     }
 
-    _cones.reserve(4);
-    for(int i = 0; i < 4; ++i) {
-        _cones.emplace_back(Vector3{pd(g), pd(g), pd(g)},
-                Vector3{pd(g), pd(g), pd(g)}.normalized(),
-                Rad(Deg(ad(g))));
-    }
-
-    _spheres.reserve(100);
-    for(int i = 0; i < 100; ++i) {
+    _spheres.reserve(512);
+    for(int i = 0; i < 512; ++i) {
         _spheres.emplace_back(Vector3{pd(g), pd(g), pd(g)}, rd(g));
     }
 }
@@ -188,31 +185,38 @@ void IntersectionBenchmark::rangeFrustumBatch() {
     }
 }
 
+void IntersectionBenchmark::sphereFrustum() {
+    volatile bool b = false;
+    CORRADE_BENCHMARK(50) for(auto& sphere: _spheres) {
+        b = b ^ Intersection::sphereFrustum(sphere.xyz(), sphere.w(), _frustum);
+    }
+}
+
 void IntersectionBenchmark::sphereConeNaive() {
     volatile bool b = false;
-    CORRADE_BENCHMARK(50) for(auto& cone: _cones) for(auto& sphere: _spheres) {
-        b = b ^ sphereConeGT<Float>(sphere.first, sphere.second, std::get<0>(cone), std::get<1>(cone), std::get<2>(cone));
+    CORRADE_BENCHMARK(50) for(auto& sphere: _spheres) {
+        b = b ^ sphereConeGT<Float>(sphere.xyz(), sphere.w(), std::get<0>(_cone), std::get<1>(_cone), std::get<2>(_cone));
     }
 }
 
 void IntersectionBenchmark::sphereCone() {
     volatile bool b = false;
-    CORRADE_BENCHMARK(50) for(auto& cone: _cones) {
-        const Float sinAngle = Math::sin(std::get<2>(cone));
-        const Float tanAngle = Math::tan(std::get<2>(cone));
+    CORRADE_BENCHMARK(50) {
+        const Float sinAngle = Math::sin(std::get<2>(_cone));
+        const Float tanAngle = Math::tan(std::get<2>(_cone));
         const Float tanAngleSqPlusOne = tanAngle*tanAngle + 1.0f;
         for(auto& sphere: _spheres) {
-            b = b ^ Intersection::sphereCone(sphere.first, sphere.second, std::get<0>(cone), std::get<1>(cone), sinAngle, tanAngleSqPlusOne);
+            b = b ^ Intersection::sphereCone(sphere.xyz(), sphere.w(), std::get<0>(_cone), std::get<1>(_cone), sinAngle, tanAngleSqPlusOne);
         }
     }
 }
 
 void IntersectionBenchmark::sphereConeView() {
     volatile bool b = false;
-    CORRADE_BENCHMARK(50) for(auto& cone: _cones) {
-        const Matrix4 coneView = coneViewFromCone(std::get<0>(cone), std::get<1>(cone));
+    CORRADE_BENCHMARK(50) {
+        const Matrix4 coneView = coneViewFromCone(std::get<0>(_cone), std::get<1>(_cone));
         for(auto& sphere: _spheres) {
-            b = b ^ Intersection::sphereConeView(sphere.first, sphere.second, coneView, std::get<2>(cone));
+            b = b ^ Intersection::sphereConeView(sphere.xyz(), sphere.w(), coneView, std::get<2>(_cone));
         }
     }
 }
