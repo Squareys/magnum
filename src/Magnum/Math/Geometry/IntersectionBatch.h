@@ -65,24 +65,27 @@ template<typename T> bool rangeBatchFrustum(Corrade::Containers::ArrayView<const
          {Math::abs(frustum[4].xyz()), T(2)*frustum[4].w()},
          {Math::abs(frustum[5].xyz()), T(2)*frustum[5].w()}};
 
+    /* Initialize with all bits on */
+    for(UnsignedLong& l : outBits) {
+        l = ~0L;
+    }
+
     int longIndex = 0;
     UnsignedLong bitMask = 1L;
 
-    for(auto& range : rangeBatch) {
+    for(auto& range: rangeBatch) {
         const Vector3<T> center = range.min() + range.max();
         const Vector3<T> extent = range.max() - range.min();
 
-        UnsignedLong result = bitMask;
         for(int i = 0; i < 6; ++i) {
             const Float d = Math::dot(center, frustum.planes()[i].xyz());
             const Float r = Math::dot(extent, absPlane[i].xyz()) + absPlane[i].w();
             if(d + r < 0) {
-                result = 0L;
+                /* Not visible */
+                outBits[longIndex] ^= bitMask;
                 break;
             }
         }
-
-        outBits[longIndex] |= result;
 
         bitMask <<= 1;
         /* Bit fully pushed out to the left? */
