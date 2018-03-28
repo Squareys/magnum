@@ -124,8 +124,11 @@ calculated and returned. @f[
 @f]
     */
 template<class T> inline T planeLine(const Vector3<T>& planePosition, const Vector3<T>& planeNormal, const Vector3<T>& p, const Vector3<T>& r) {
-    const T f = dot(planePosition, planeNormal);
-    return (f - dot(planeNormal, p))/dot(planeNormal, r);
+    const T d = dot(planeNormal, r);
+    if(d < Math::TypeTraits<T>::epsilon() && d > -Math::TypeTraits<T>::epsilon()) {
+        return Math::dot(planePosition - p, planeNormal)/T(0);
+    }
+    return Math::dot(planePosition - p, planeNormal)/d;
 }
 
 /**
